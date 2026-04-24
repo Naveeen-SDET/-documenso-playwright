@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { DashboardPage } from '../../pages/DashboardPage';
 
+test.use({ storageState: '.auth/sender.json' });
+
 test.describe('@ui document list', () => {
   test('dashboard loads when authenticated', async ({ page }) => {
     const dashboard = new DashboardPage(page);

@@ -27,6 +27,13 @@ export class DashboardPage extends BasePage {
   return url.includes('/documents') || url.includes('/dashboard') || !url.includes('/signin');
 
   }
+  async logout() {
+  await this.page.getByTestId('menu-switcher').click();
+  await this.page.getByRole('menuitem', { name: /sign out/i })
+    .or(this.page.getByText('Sign out'))
+    .click();
+  await this.page.waitForURL(/signin/, { timeout: 10000 });
+}
 
   async getNewDocumentButton() { return this.newDocumentButton; }
   async getDocumentsList()     { return this.documentsList; }
