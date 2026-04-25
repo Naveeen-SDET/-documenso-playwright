@@ -16,6 +16,8 @@ test('create sender auth', async ({ page }) => {
 });
 
 test('create signer auth', async ({ page }) => {
+  // Small pause to avoid rate limiting between back-to-back logins
+  await page.waitForTimeout(2000);
   await page.goto('/signin');
   await page.getByLabel(/email/i).fill(env.signerEmail);
   await page.locator('input[type="password"]').fill(env.signerPassword);
