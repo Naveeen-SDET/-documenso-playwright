@@ -29,6 +29,9 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install chromium --with-deps
 
+      - name: Clone Documenso app
+        run: git clone https://github.com/documenso/documenso.git documenso-app --depth=1
+
       - name: Start Documenso
         run: docker compose -f documenso-app/docker/testing/compose.yml up -d
 
