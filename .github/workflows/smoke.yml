@@ -44,8 +44,8 @@ jobs:
             sleep 5
           done
 
-      - name: Run tests
-        run: pnpm exec playwright test --reporter=list
+      - name: Run CI tests
+        run: pnpm exec playwright test --project=ci --reporter=list
         env:
           BASE_URL: http://localhost:3000
           SENDER_EMAIL: sender@test.com

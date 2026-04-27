@@ -7,6 +7,7 @@ test.describe('@auth login flows', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test('successful login redirects away from signin', async ({ page }) => {
+    test.skip(!!process.env.CI, 'Requires pre-seeded account — run locally');
     const loginPage = new LoginPage(page);
     await loginPage.login(env.signerEmail, env.signerPassword);
     await expect(page).not.toHaveURL(/signin/);

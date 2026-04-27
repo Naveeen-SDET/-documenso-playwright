@@ -29,5 +29,11 @@ export default defineConfig({
       dependencies: ['setup'],
       testIgnore: '**/setup/**',
     },
+    // CI project: runs without auth setup, skips tests that need pre-seeded accounts
+    {
+      name: 'ci',
+      use: { ...devices['Desktop Chrome'], storageState: { cookies: [], origins: [] } },
+      testIgnore: ['**/setup/**', '**/auth/logout.spec.ts', '**/documents/**'],
+    },
   ],
 });

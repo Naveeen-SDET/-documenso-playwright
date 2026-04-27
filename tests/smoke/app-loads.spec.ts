@@ -17,6 +17,7 @@ test.describe('smoke', () => {
   });
 
   test('valid login reaches dashboard', async ({ page }) => {
+   test.skip(!!process.env.CI, 'Requires pre-seeded account — run locally');
     await page.goto('/signin');
     await page.getByLabel(/email/i).fill(env.senderEmail);
     await page.locator('input[type="password"]').fill(env.senderPassword);
