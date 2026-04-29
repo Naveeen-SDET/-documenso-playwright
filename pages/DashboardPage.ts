@@ -2,15 +2,14 @@ import { Page, Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class DashboardPage extends BasePage {
-  private readonly newDocumentButton: Locator;
+  readonly newDocumentButton: Locator;
   private readonly documentsList: Locator;
   private readonly userMenuButton: Locator;
 
   constructor(page: Page) {
     super(page);
     // Adjust these if the text differs — check the app in your browser
-    this.newDocumentButton = page.getByRole('link', { name: /new document/i })
-      .or(page.getByRole('button', { name: /new document/i }));
+    this.newDocumentButton = page.getByRole('button', { name: /upload document/i });
     this.documentsList  = page.locator('[data-testid="document-table"]')
       .or(page.getByRole('table'));
     this.userMenuButton = page.getByRole('button', { name: /account|profile|user/i })
