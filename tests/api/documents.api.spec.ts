@@ -4,17 +4,8 @@ import { env } from '../../config/env';
 const V1   = `${env.baseUrl}/api/v1`;
 const AUTH = { 'Authorization': `Bearer ${env.apiKey}` };
 
-/**
- * Day 12 — API layer tests using Playwright's request fixture
- *
- * Strategy: test the v1 documents API (deprecated but stable).
- * v2 uses a presigned-URL document creation flow not covered here.
- * Coverage: auth guards, happy path, response schema, pagination.
- */
-
-test.describe('@api documents API', () => {
-
-  // ── Auth guards ─────────────────────────────────────────────────────────────
+// ── Runs in CI — no token required ─────────────────────────────────────────
+test.describe('@api documents API — auth guards', () => {
 
   test('no token returns 400', async ({ request }) => {
     const res = await request.get(`${V1}/documents`);
@@ -28,19 +19,25 @@ test.describe('@api documents API', () => {
     expect(res.ok()).toBe(false);
   });
 
-  // ── Happy path ──────────────────────────────────────────────────────────────
+});
+
+// ── Requires API key — skipped in CI (fresh DB has no tokens) ───────────────
+test.describe('@api documents API — authenticated', () => {
+
+  test.beforeEach(async ({}, testInfo) => {
+    if (!env.apiKey) {
+      testInfo.skip(true, 'Requires DOCUMENSO_API_KEY — CI uses a fresh DB with no tokens');
+    }
+  });
 
   test('valid token returns 200', async ({ request }) => {
     const res = await request.get(`${V1}/documents`, { headers: AUTH });
     expect(res.status()).toBe(200);
   });
 
-  // ── Schema validation ────────────────────────────────────────────────────────
-
   test('response body has documents array + totalPages', async ({ request }) => {
     const res = await request.get(`${V1}/documents`, { headers: AUTH });
     const body = await res.json();
-
     expect(body).toHaveProperty('documents');
     expect(Array.isArray(body.documents)).toBe(true);
     expect(body).toHaveProperty('totalPages');
@@ -50,7 +47,6 @@ test.describe('@api documents API', () => {
   test('each document has id, title and status fields', async ({ request }) => {
     const res = await request.get(`${V1}/documents?page=1&perPage=5`, { headers: AUTH });
     const body = await res.json();
-
     for (const doc of body.documents) {
       expect(doc).toHaveProperty('id');
       expect(doc).toHaveProperty('title');
@@ -59,8 +55,6 @@ test.describe('@api documents API', () => {
       expect(typeof doc.status).toBe('string');
     }
   });
-
-  // ── Pagination ──────────────────────────────────────────────────────────────
 
   test('perPage=3 returns at most 3 documents', async ({ request }) => {
     const res = await request.get(`${V1}/documents?page=1&perPage=3`, { headers: AUTH });
