@@ -316,3 +316,61 @@ jobs:
           name: cross-browser-test-report
           path: playwright-report/
           retention-days: 7
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 6 — Pact Provider Verification
+  # Tests: verifies the real Documenso API honours the consumer-generated contract
+  # CI safe: yes — skips gracefully if DOCUMENSO_API_KEY secret is not configured
+  # Requires: DOCUMENSO_API_KEY set as a GitHub Actions secret
+  # ════════════════════════════════════════════════════════════════════════════
+  pact-provider:
+    name: Pact Provider Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Run after consumer tests so the pact file is always current
+    needs: []
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Clone Documenso app
+        run: git clone https://github.com/documenso/documenso.git documenso-app --depth=1
+
+      - name: Start Documenso
+        run: docker compose -f documenso-app/docker/testing/compose.yml up -d
+
+      - name: Wait for app to be ready
+        run: |
+          echo "Waiting for http://localhost:3000..."
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000 > /dev/null && echo "App is up!" && break
+            echo "Attempt $i/30 — retrying in 5s..."
+            sleep 5
+          done
+
+      - name: Run Pact provider verification
+        run: pnpm test:pact:provider
+        env:
+          BASE_URL: http://localhost:3000
+          DOCUMENSO_API_KEY: ${{ secrets.DOCUMENSO_API_KEY }}
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Upload pact results on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: pact-provider-report
+          path: pacts/
+          retention-days: 7
