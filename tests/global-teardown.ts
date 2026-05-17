@@ -15,9 +15,15 @@ async function globalTeardown() {
   const context = await request.newContext({ baseURL: env.baseUrl });
 
   try {
-    const res = await context.get('/api/v1/documents?page=1&perPage=100', {
-      headers: { Authorization: `Bearer ${env.apiKey}` },
-    });
+    let res: Awaited<ReturnType<typeof context.get>>;
+    try {
+      res = await context.get('/api/v1/documents?page=1&perPage=100', {
+        headers: { Authorization: `Bearer ${env.apiKey}` },
+      });
+    } catch (e: any) {
+      console.log(`⚠ App not reachable for teardown (${e.code ?? e.message}) — skipping`);
+      return;
+    }
 
     if (!res.ok()) {
       console.log('⚠ Could not fetch documents for teardown');
