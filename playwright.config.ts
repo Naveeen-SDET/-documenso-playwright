@@ -11,6 +11,7 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['./reporters/markdown-summary.reporter.ts', { outputFile: 'test-results/summary.md' }],
   ],
   // ── Global screenshot comparison defaults ────────────────────────────────
   expect: {
