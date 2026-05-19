@@ -1,0 +1,69 @@
+name: Schema Check
+
+# ── When it runs ──────────────────────────────────────────────────────────────
+# Every push and every PR — this is the fastest possible feedback loop.
+# No Docker, no browser install, no waiting for an app to boot.
+# Should complete in under 60 seconds.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # Schema & Contract Check
+  #
+  # What runs here:
+  #   • Negative contract tests  (17 tests) — Zod schema rejects bad shapes
+  #   • BVA parameterized tests  (42 tests) — boundary values on all schemas
+  #   • Pact consumer tests      ( 5 tests) — consumer contract mock server
+  #
+  # Why no browser install?
+  #   These tests use only Zod (pure TypeScript) or Playwright's `request`
+  #   fixture (Node.js HTTP — no browser process). Playwright only launches
+  #   a browser binary when a test requests the `page` or `browser` fixture.
+  #   Skipping `playwright install` saves ~2 minutes per run.
+  #
+  # Why this matters:
+  #   Schema breaks are the fastest-moving class of defect — a backend team
+  #   can rename a field and ship it in minutes. This job catches that break
+  #   before the commit even lands in main, with zero infrastructure cost.
+  # ════════════════════════════════════════════════════════════════════════════
+  schema-check:
+    name: Schema & Contract Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5      # hard ceiling — if this takes > 5 min something is wrong
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+        # No playwright install step — these tests require no browser binary
+
+      - name: Zod contract tests (negative)
+        run: pnpm exec playwright test tests/api/contracts-negative.spec.ts --project=ci
+
+      - name: Zod BVA parameterized tests
+        run: pnpm exec playwright test tests/api/documents-parameterized.spec.ts --project=ci
+
+      - name: Pact consumer tests
+        run: pnpm test:pact:consumer
+
+      - name: Upload test summary
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: schema-check-summary
+          path: test-results/summary.md
+          retention-days: 7

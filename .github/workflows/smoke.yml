@@ -1,16 +1,24 @@
-name: CI
+name: Smoke
 
+# ── When it runs ──────────────────────────────────────────────────────────────
+# Every push and PR to main — this is the PR gate.
+# Runs the full ci project (API, security, a11y, contract, cross-browser tests).
+# Must pass before a PR can merge.
+#
+# Three-tier CI strategy:
+#   1. schema-check.yml  — instant (< 60s), no Docker, every push
+#   2. smoke.yml         — fast    (< 10min), Docker, every PR          ← this file
+#   3. regression.yml    — full    (parallel jobs), Docker, nightly
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  # Allows manual trigger from the GitHub Actions UI
-  # Go to Actions tab → CI → Run workflow
   workflow_dispatch:
 
 jobs:
-  test:
+  smoke:
+    name: Smoke Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -47,8 +55,10 @@ jobs:
             sleep 5
           done
 
-      - name: Run CI tests
-        run: pnpm exec playwright test --project=ci --reporter=list
+      - name: Run smoke tests
+        # No --reporter flag — playwright.config.ts reporters run in full:
+        # list (terminal) + html (report folder) + markdown-summary (test-results/summary.md)
+        run: pnpm exec playwright test --project=ci
         env:
           BASE_URL: http://localhost:3000
           SENDER_EMAIL: sender@test.com
@@ -57,10 +67,18 @@ jobs:
           SIGNER_PASSWORD: Test1234!
           INBUCKET_URL: http://localhost:9000
 
-      - name: Upload Playwright report
+      - name: Upload test summary
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test-summary
+          path: test-results/summary.md
+          retention-days: 7
+
+      - name: Upload HTML report on failure
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: smoke-test-report
           path: playwright-report/
           retention-days: 7
