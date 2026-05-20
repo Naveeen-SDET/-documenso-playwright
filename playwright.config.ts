@@ -12,6 +12,7 @@ export default defineConfig({
     ['list'],
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['./reporters/markdown-summary.reporter.ts', { outputFile: 'test-results/summary.md' }],
+    ['./reporters/flaky-detector.reporter.ts',   { outputFile: 'test-results/flaky-tests.json' }],
   ],
   // ── Global screenshot comparison defaults ────────────────────────────────
   expect: {
