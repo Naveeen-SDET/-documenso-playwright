@@ -18,7 +18,7 @@ async function login(page: any, email: string, password: string) {
   await passwordInput.fill(password);
 
   await page.getByRole('button', { name: /sign in/i }).click();
-  await page.waitForURL(url => !url.toString().includes('/signin'), { timeout: 30000 });
+  await page.waitForURL((url: URL) => !url.toString().includes('/signin'), { timeout: 30000 });
 }
 
 test('create sender auth', async ({ page }) => {

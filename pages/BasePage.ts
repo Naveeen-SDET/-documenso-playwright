@@ -15,4 +15,9 @@ export class BasePage {
   async getTitle(): Promise<string> {
     return this.page.title();
   }
+
+  /** Expose the underlying Page for assertions that need it (e.g. toHaveURL). */
+  getPage(): Page {
+    return this.page;
+  }
 }

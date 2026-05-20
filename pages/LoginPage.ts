@@ -69,7 +69,7 @@ export class LoginPage extends BasePage {
    */
   async loginAndWaitForDashboard(email: string, password: string): Promise<void> {
     await this.login(email, password);
-    await this.waitForUrl(/\/documents/);
+    await this.page.waitForURL(/\/documents/);
   }
 
   // ── Accessor helpers (used by tests that need direct locator access) ──────────

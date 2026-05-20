@@ -86,7 +86,7 @@ export const AuditLogSchema = z.object({
   id:         z.union([z.number(), z.string()]),
   type:       z.string(),           // DOCUMENT_CREATED, DOCUMENT_SENT, etc.
   createdAt:  z.string(),
-  data:       z.record(z.unknown()).optional(),  // arbitrary metadata per event
+  data:       z.record(z.string(), z.unknown()).optional(),  // arbitrary metadata per event
   email:      z.string().nullable().optional(),
   name:       z.string().nullable().optional(),
   userId:     z.number().nullable().optional(),
