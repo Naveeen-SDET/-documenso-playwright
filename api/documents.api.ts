@@ -1,3 +1,5 @@
+import fs   from 'fs';
+import path from 'path';
 import { ApiClient } from './apiClient';
 
 export interface Document {
@@ -44,6 +46,38 @@ export class DocumentsApi extends ApiClient {
 
     if (!res.ok()) {
       throw new Error(`GET /documents/${id} failed: ${res.status()}`);
+    }
+
+    return res.json();
+  }
+
+  /**
+   * Upload a PDF and create a new document.
+   * Uses multipart/form-data — the Documenso v1 API expects a `file` field.
+   *
+   * @param pdfPath  Absolute path to the PDF file
+   * @param title    Document title (defaults to the filename)
+   */
+  async create(pdfPath: string, title?: string): Promise<Document> {
+    const filename = path.basename(pdfPath);
+
+    const res = await this.request.post(
+      this.url('/api/v1/documents'),
+      {
+        headers: this.authHeaders(),
+        multipart: {
+          file: {
+            name:     filename,
+            mimeType: 'application/pdf',
+            buffer:   fs.readFileSync(pdfPath),
+          },
+          ...(title ? { title } : {}),
+        },
+      }
+    );
+
+    if (!res.ok()) {
+      throw new Error(`POST /documents failed: ${res.status()} ${await res.text()}`);
     }
 
     return res.json();

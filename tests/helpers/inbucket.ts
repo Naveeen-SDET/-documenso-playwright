@@ -21,7 +21,7 @@ export async function listMessages(email: string): Promise<InbucketMessage[]> {
   const res = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox(email)}`);
   if (res.status === 404) return [];
   if (!res.ok) throw new Error(`Inbucket error: ${res.status}`);
-  return res.json();
+  return res.json() as Promise<InbucketMessage[]>;
 }
 
 export async function getMessage(
@@ -30,7 +30,7 @@ export async function getMessage(
 ): Promise<InbucketMessageDetail> {
   const res = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox(email)}/${id}`);
   if (!res.ok) throw new Error(`Inbucket error: ${res.status}`);
-  return res.json();
+  return res.json() as Promise<InbucketMessageDetail>;
 }
 
 export async function waitForEmail(

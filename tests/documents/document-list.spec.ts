@@ -9,7 +9,7 @@ test.describe('@smoke @ui document list', () => {
   });
 
   test('dashboard loads when authenticated', async ({ dashboardPage }) => {
-    await expect(dashboardPage.page).toHaveURL(/documents/);
+    await expect(dashboardPage.getPage()).toHaveURL(/documents/);
   });
 
   test('API returns documents array', async ({ docsApi }, testInfo) => {
