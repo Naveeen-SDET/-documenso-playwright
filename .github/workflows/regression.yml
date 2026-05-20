@@ -79,7 +79,7 @@ jobs:
         if: always()
         with:
           name: api-test-summary
-          path: test-results/summary.md
+          path: test-results/
           retention-days: 7
 
       - name: Upload HTML report on failure
@@ -148,7 +148,7 @@ jobs:
         if: always()
         with:
           name: security-test-summary
-          path: test-results/summary.md
+          path: test-results/
           retention-days: 7
 
       - name: Upload HTML report on failure
@@ -217,7 +217,7 @@ jobs:
         if: always()
         with:
           name: a11y-test-summary
-          path: test-results/summary.md
+          path: test-results/
           retention-days: 7
 
       - name: Upload HTML report on failure
@@ -286,7 +286,7 @@ jobs:
         if: always()
         with:
           name: contract-test-summary
-          path: test-results/summary.md
+          path: test-results/
           retention-days: 7
 
       - name: Upload HTML report on failure
@@ -350,7 +350,7 @@ jobs:
         if: always()
         with:
           name: cross-browser-test-summary
-          path: test-results/summary.md
+          path: test-results/
           retention-days: 7
 
       - name: Upload HTML report on failure
