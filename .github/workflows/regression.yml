@@ -82,6 +82,14 @@ jobs:
           path: test-results/
           retention-days: 7
 
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results-api
+          path: allure-results/
+          retention-days: 7
+
       - name: Upload HTML report on failure
         uses: actions/upload-artifact@v4
         if: failure()
@@ -149,6 +157,14 @@ jobs:
         with:
           name: security-test-summary
           path: test-results/
+          retention-days: 7
+
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results-security
+          path: allure-results/
           retention-days: 7
 
       - name: Upload HTML report on failure
@@ -220,6 +236,14 @@ jobs:
           path: test-results/
           retention-days: 7
 
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results-a11y
+          path: allure-results/
+          retention-days: 7
+
       - name: Upload HTML report on failure
         uses: actions/upload-artifact@v4
         if: failure()
@@ -289,6 +313,14 @@ jobs:
           path: test-results/
           retention-days: 7
 
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results-contracts
+          path: allure-results/
+          retention-days: 7
+
       - name: Upload HTML report on failure
         uses: actions/upload-artifact@v4
         if: failure()
@@ -351,6 +383,14 @@ jobs:
         with:
           name: cross-browser-test-summary
           path: test-results/
+          retention-days: 7
+
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results-cross-browser
+          path: allure-results/
           retention-days: 7
 
       - name: Upload HTML report on failure
@@ -417,3 +457,130 @@ jobs:
           name: pact-provider-report
           path: pacts/
           retention-days: 7
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 7 — Allure Report (combined + trend history)
+  #
+  # Runs AFTER all test jobs complete (pass or fail).
+  # Downloads every job's allure-results, merges them into one report,
+  # and restores/saves history so the Trends tab shows run-over-run changes.
+  #
+  # Trend tracking works by:
+  #   1. Restoring allure-history from the previous run (GitHub Actions cache)
+  #   2. Copying it into allure-results/history/ before generating
+  #   3. Generating the report (Allure reads history/ automatically)
+  #   4. Saving the new history back to the cache for the next run
+  #
+  # The generated report is uploaded as an artifact — downloadable from the
+  # Actions UI. Open index.html locally or deploy to GitHub Pages.
+  # ════════════════════════════════════════════════════════════════════════════
+  allure-report:
+    name: Allure Report (combined + trends)
+    runs-on: ubuntu-latest
+    needs:
+      - api-tests
+      - security-tests
+      - a11y-tests
+      - contract-tests
+      - cross-browser-tests
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Download all Allure results from parallel jobs ────────────────────
+      - name: Download API Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-api
+          path: allure-results/
+        continue-on-error: true
+
+      - name: Download Security Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-security
+          path: allure-results/
+        continue-on-error: true
+
+      - name: Download Accessibility Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-a11y
+          path: allure-results/
+        continue-on-error: true
+
+      - name: Download Contract Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-contracts
+          path: allure-results/
+        continue-on-error: true
+
+      - name: Download Cross-Browser Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-cross-browser
+          path: allure-results/
+        continue-on-error: true
+
+      # ── Restore trend history from previous run ───────────────────────────
+      # This is what makes the Trends tab work — without it every run starts
+      # from scratch and you never see pass-rate-over-time graphs.
+      - name: Restore Allure history (for trend tracking)
+        uses: actions/cache@v4
+        with:
+          path: allure-history
+          key: allure-history-${{ github.ref_name }}
+          restore-keys: |
+            allure-history-
+
+      - name: Copy history into allure-results
+        run: |
+          if [ -d allure-history ]; then
+            cp -r allure-history allure-results/history
+            echo "✓ Restored $(ls allure-history | wc -l) history entries"
+          else
+            echo "No previous history found — this will be the first trend data point"
+          fi
+
+      # ── Copy categories definition into results ───────────────────────────
+      - name: Copy categories.json
+        run: |
+          if [ -f allure-results/categories.json ]; then
+            echo "categories.json already present"
+          else
+            echo "[]" > allure-results/categories.json
+          fi
+
+      # ── Install Allure CLI and generate report ────────────────────────────
+      - name: Install Allure CLI
+        run: |
+          curl -o allure.tgz -L https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
+          tar -xzf allure.tgz
+          echo "$PWD/allure-2.29.0/bin" >> $GITHUB_PATH
+
+      - name: Generate Allure report
+        run: allure generate allure-results --clean -o allure-report
+
+      # ── Save updated history for next run ────────────────────────────────
+      - name: Save Allure history for next run
+        run: |
+          mkdir -p allure-history
+          cp -r allure-report/history/. allure-history/
+          echo "✓ Saved history for next run"
+
+      - name: Update history cache
+        uses: actions/cache@v4
+        with:
+          path: allure-history
+          key: allure-history-${{ github.ref_name }}
+
+      # ── Upload finished report ────────────────────────────────────────────
+      - name: Upload Allure report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-report
+          path: allure-report/
+          retention-days: 30
