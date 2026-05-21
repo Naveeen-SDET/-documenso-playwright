@@ -7,7 +7,12 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:pact": "jest --config jest.config.ts",
     "test:pact:consumer": "jest --config jest.config.ts pact/consumer",
-    "test:pact:provider": "jest --config jest.config.ts pact/provider"
+    "test:pact:provider": "jest --config jest.config.ts pact/provider",
+    "allure:env": "ts-node scripts/write-allure-env.ts",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "allure:serve": "allure serve allure-results",
+    "test:allure": "pnpm allure:env && pnpm exec playwright test --project=ci && pnpm allure:generate"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +24,7 @@
     "@playwright/test": "^1.59.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
+    "allure-playwright": "^3.9.0",
     "dotenv": "^17.4.2",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.9",

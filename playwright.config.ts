@@ -13,6 +13,19 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['./reporters/markdown-summary.reporter.ts', { outputFile: 'test-results/summary.md' }],
     ['./reporters/flaky-detector.reporter.ts',   { outputFile: 'test-results/flaky-tests.json' }],
+    ['allure-playwright', {
+      detail: true,
+      outputFolder: 'allure-results',
+      suiteTitle: true,
+      // Links test tags (@security, @api etc.) to Allure labels automatically
+      environmentInfo: {
+        APP:        'Documenso',
+        BASE_URL:   process.env.BASE_URL ?? 'http://localhost:3000',
+        TEST_ENV:   process.env.TEST_ENV ?? 'local',
+        NODE_ENV:   process.env.NODE_ENV ?? 'development',
+        CI:         process.env.CI ?? 'false',
+      },
+    }],
   ],
   // ── Global screenshot comparison defaults ────────────────────────────────
   expect: {
