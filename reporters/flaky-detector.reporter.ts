@@ -105,7 +105,7 @@ class FlakyDetectorReporter implements Reporter {
 
     record.totalTries++;
 
-    if (result.status === 'passed' || result.status === 'expected') {
+    if (result.status === 'passed') {
       record.passed = true;
     } else if (result.status === 'failed' || result.status === 'timedOut') {
       record.failures++;
