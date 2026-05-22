@@ -8,7 +8,7 @@
 
 Production-grade Playwright + TypeScript test framework for [Documenso](https://documenso.com) — an open-source electronic signature platform operating under eIDAS and UK e-signature regulations.
 
-**80+ tests across 9 test categories. Two CI pipelines. Zero critical defect escapes.**
+**130+ tests across 9 test categories. Two CI pipelines. Zero critical defect escapes.**
 
 ---
 
@@ -23,6 +23,35 @@ This framework covers all of it — not just happy-path UI flows.
 REST audit trail immutability is **verified**: `DELETE` and `PATCH` on `/api/v1/documents/:id/audit-logs` both return 404. Audit logs cannot be tampered with via the REST API.
 
 Additionally: Documenso's audit data is only accessible to external integrators via tRPC, not REST. This is documented here as a compliance gap — the kind of finding that matters to teams building on top of Documenso in regulated industries.
+
+---
+
+## Known Security Findings
+
+These are **real gaps confirmed against Documenso** by this test suite. They are not test bugs. The tests are annotated with `test.fail()` so CI stays green while the findings remain documented. If Documenso ships a fix, the affected test will flip to "unexpectedly passed" and alert us to remove the annotation.
+
+| # | Header | Severity | OWASP Ref | Impact |
+|---|---|---|---|---|
+| 1 | `X-Content-Type-Options` absent on HTML pages | Medium | OTG-CONFIG-007 | Browsers may MIME-sniff responses — enables content injection via attacker-controlled response bodies |
+| 2 | `Referrer-Policy` absent on HTML pages | Low-Medium | OTG-INFO-002 | Full page URLs (including query-string tokens and document IDs) may leak in the `Referer` header to third-party servers |
+| 3 | `X-Content-Type-Options` absent on API responses | Medium | OTG-CONFIG-007 | API error bodies with user-influenced content could be MIME-sniffed as HTML/script |
+
+**Recommended fix for all three**: Add global response headers in `next.config.js` `headers()` or at the reverse-proxy/CDN layer:
+
+```js
+// next.config.js
+async headers() {
+  return [{
+    source: '/(.*)',
+    headers: [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+    ],
+  }];
+}
+```
+
+These findings were identified through automated security header scanning (OWASP Testing Guide OTG-CONFIG-007) and confirmed with Docker-based CI runs.
 
 ---
 

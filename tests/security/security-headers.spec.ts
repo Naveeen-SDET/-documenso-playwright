@@ -65,8 +65,21 @@ test.describe('@security @headers HTML pages — security headers', () => {
    * extension that is actually JavaScript, and the browser will execute it.
    *
    * OWASP: OTG-CONFIG-007 | Required value: nosniff
+   *
+   * ── KNOWN FINDING ────────────────────────────────────────────────────────────
+   * Status   : Confirmed gap in Documenso (verified 2026-05-22, Docker CI)
+   * Severity : Medium (OWASP OTG-CONFIG-007)
+   * Impact   : Browsers may MIME-sniff responses — enables content injection if
+   *            attacker-controlled content ever appears in a response body
+   * Fix      : Add `X-Content-Type-Options: nosniff` in Next.js next.config.js
+   *            headers() or at the reverse-proxy level
+   * Tracked  : test.fail() marks this as an expected-to-fail assertion so CI
+   *            stays green. If Documenso ships the fix, this test will flip to
+   *            "unexpectedly passed" and alert us to remove test.fail().
+   * ─────────────────────────────────────────────────────────────────────────────
    */
   test('X-Content-Type-Options is set to nosniff', async ({ request }, testInfo) => {
+    test.fail(true, 'KNOWN FINDING: Documenso does not set X-Content-Type-Options header (OTG-CONFIG-007)');
     const res = await safeFetch(request, env.baseUrl, testInfo);
     const header = res.headers()['x-content-type-options'];
     expect(
@@ -115,8 +128,21 @@ test.describe('@security @headers HTML pages — security headers', () => {
    *
    * OWASP: OTG-INFO-002
    * Recommended: strict-origin-when-cross-origin | no-referrer | same-origin
+   *
+   * ── KNOWN FINDING ────────────────────────────────────────────────────────────
+   * Status   : Confirmed gap in Documenso (verified 2026-05-22, Docker CI)
+   * Severity : Low-Medium (OWASP OTG-INFO-002)
+   * Impact   : Full page URLs — including any query parameters that contain
+   *            tokens or document IDs — may leak to third-party servers in the
+   *            Referer header when users navigate away from authenticated pages
+   * Fix      : Add `Referrer-Policy: strict-origin-when-cross-origin` in
+   *            next.config.js headers() or at the reverse-proxy level
+   * Tracked  : test.fail() marks this as expected-to-fail. Flip to passing when
+   *            Documenso ships the Referrer-Policy header.
+   * ─────────────────────────────────────────────────────────────────────────────
    */
   test('Referrer-Policy header is present', async ({ request }, testInfo) => {
+    test.fail(true, 'KNOWN FINDING: Documenso does not set Referrer-Policy header (OTG-INFO-002)');
     const res = await safeFetch(request, env.baseUrl, testInfo);
     const header = res.headers()['referrer-policy'];
 
@@ -246,8 +272,19 @@ test.describe('@security @headers API responses — security headers', () => {
    * Even JSON API endpoints need this header. Without it, if the API ever
    * returns attacker-controlled content in an error message, a browser could
    * misinterpret it as HTML and execute embedded scripts.
+   *
+   * ── KNOWN FINDING ────────────────────────────────────────────────────────────
+   * Status   : Confirmed gap in Documenso (verified 2026-05-22, Docker CI)
+   * Severity : Medium (OWASP OTG-CONFIG-007)
+   * Impact   : API error bodies containing attacker-influenced data could be
+   *            MIME-sniffed and executed as HTML/script by the browser
+   * Fix      : Same as HTML page fix — header must be set globally, not just
+   *            on page routes. Middleware or reverse-proxy level is ideal.
+   * Tracked  : test.fail() marks this as expected-to-fail. Remove when fixed.
+   * ─────────────────────────────────────────────────────────────────────────────
    */
   test('API responses set X-Content-Type-Options: nosniff', async ({ request }, testInfo) => {
+    test.fail(true, 'KNOWN FINDING: Documenso API does not set X-Content-Type-Options header (OTG-CONFIG-007)');
     const res = await safeFetch(
       request,
       `${env.baseUrl}/api/v1/documents`,
