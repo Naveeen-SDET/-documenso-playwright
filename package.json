@@ -9,6 +9,7 @@
     "test:pact:consumer": "jest --config jest.config.ts pact/consumer",
     "test:pact:provider": "jest --config jest.config.ts pact/provider",
     "generate:test": "ts-node scripts/generate-test.ts",
+    "suggest:edge-cases": "ts-node scripts/suggest-edge-cases.ts",
     "allure:env": "ts-node scripts/write-allure-env.ts",
     "allure:generate": "allure generate allure-results --clean -o allure-report",
     "allure:open": "allure open allure-report",
