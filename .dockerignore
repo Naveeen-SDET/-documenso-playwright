@@ -1,0 +1,28 @@
+# Dependencies — reinstalled inside the image
+node_modules/
+
+# Git history — not needed in the image
+.git/
+.github/
+
+# Local auth state — never bake credentials into the image
+.auth/
+.env
+.env.local
+
+# Generated artifacts — mounted as volumes at runtime
+test-results/
+allure-results/
+allure-report/
+playwright-report/
+
+# Documenso app clone — not part of the test image
+documenso-app/
+
+# Pact output
+pacts/
+
+# Editor and OS files
+.DS_Store
+*.swp
+.vscode/

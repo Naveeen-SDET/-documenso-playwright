@@ -1,0 +1,70 @@
+# ── Dockerfile.tests ─────────────────────────────────────────────────────────
+#
+# Builds a self-contained test runner image for the Documenso Playwright suite.
+#
+# Why containerise tests?
+# ──────────────────────
+# "Works on my machine" is the enemy of reproducible CI. By packaging the test
+# suite into a Docker image:
+#   - Every engineer runs against identical browser binaries and Node versions
+#   - CI and local runs are byte-for-byte equivalent environments
+#   - The image can be cached in a registry and reused across pipeline jobs
+#   - No "pnpm install" or browser install step in CI — the image already has it
+#
+# Build:
+#   docker build -f Dockerfile.tests -t documenso-tests:latest .
+#
+# Run against a local Documenso instance:
+#   docker run --rm --network host \
+#     -e BASE_URL=http://localhost:3000 \
+#     -v $(pwd)/test-results:/app/test-results \
+#     -v $(pwd)/allure-results:/app/allure-results \
+#     documenso-tests:latest --project=ci
+#
+# Run as part of the full stack (recommended):
+#   docker compose -f docker-compose.full.yml up --abort-on-container-exit
+#
+# ── Base image ────────────────────────────────────────────────────────────────
+# Official Playwright image includes: Node 20, all browser binaries and their
+# system dependencies, and a non-root pwuser for security.
+# Version must match the @playwright/test version in package.json (1.59.1).
+FROM mcr.microsoft.com/playwright:v1.59.1-jammy
+
+# ── Working directory ─────────────────────────────────────────────────────────
+WORKDIR /app
+
+# ── Install pnpm ──────────────────────────────────────────────────────────────
+# The base image ships with npm. We install pnpm globally to match the local
+# developer workflow and respect pnpm-lock.yaml for reproducible installs.
+RUN npm install -g pnpm@10
+
+# ── Dependency install (cached layer) ────────────────────────────────────────
+# Copy lockfile and package.json first so Docker caches this layer.
+# The layer is only invalidated when dependencies change, not when test files
+# change — saving ~60 seconds on every code-only change.
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# ── Copy source ───────────────────────────────────────────────────────────────
+# Copy everything except node_modules (excluded via .dockerignore).
+# We copy after install so test file changes don't bust the dependency cache.
+COPY . .
+
+# ── Environment defaults ─────────────────────────────────────────────────────
+# These can be overridden at runtime with -e or in docker-compose.full.yml.
+ENV BASE_URL=http://localhost:3000
+ENV TEST_ENV=ci
+ENV CI=true
+
+# ── Output directory ──────────────────────────────────────────────────────────
+# Declare volumes for test artifacts so they can be mounted from the host.
+# test-results/ → summary.md, flaky-tests.json
+# allure-results/ → raw Allure data (generate report separately)
+# playwright-report/ → HTML report
+VOLUME ["/app/test-results", "/app/allure-results", "/app/playwright-report"]
+
+# ── Entrypoint ────────────────────────────────────────────────────────────────
+# ENTRYPOINT runs playwright test; CMD provides default arguments.
+# Override CMD at runtime: docker run ... documenso-tests tests/api/ --project=ci
+ENTRYPOINT ["pnpm", "exec", "playwright", "test"]
+CMD ["--project=ci"]

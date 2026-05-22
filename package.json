@@ -14,7 +14,11 @@
     "allure:generate": "allure generate allure-results --clean -o allure-report",
     "allure:open": "allure open allure-report",
     "allure:serve": "allure serve allure-results",
-    "test:allure": "pnpm allure:env && pnpm exec playwright test --project=ci && pnpm allure:generate"
+    "test:allure": "pnpm allure:env && pnpm exec playwright test --project=ci && pnpm allure:generate",
+
+    "docker:build": "docker build -f Dockerfile.tests -t documenso-tests:latest .",
+    "docker:test":  "bash scripts/docker-test.sh",
+    "docker:clean": "bash scripts/docker-test.sh --clean"
   },
   "keywords": [],
   "author": "",
