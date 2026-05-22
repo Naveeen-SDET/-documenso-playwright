@@ -1,0 +1,119 @@
+# ── docker-compose.full.yml ───────────────────────────────────────────────────
+#
+# Full-stack test environment: Documenso app + test runner in one command.
+#
+# What this solves:
+# ─────────────────
+# The regression.yml CI workflow clones Documenso and starts it separately from
+# the test runner. This compose file collapses that into a single command so:
+#   - Local developers can reproduce the full CI environment exactly
+#   - The test runner waits for Documenso to pass its health check before starting
+#   - Artifacts are written to the host's ./test-results and ./allure-results
+#   - A single exit code from the test-runner service drives CI pass/fail
+#
+# Usage:
+#   # First time — build the test image
+#   docker compose -f docker-compose.full.yml build
+#
+#   # Run full suite (exits when tests complete)
+#   docker compose -f docker-compose.full.yml up --abort-on-container-exit
+#
+#   # Run a specific test folder
+#   docker compose -f docker-compose.full.yml run --rm test-runner tests/security/ --project=ci
+#
+#   # Tear down all containers and volumes
+#   docker compose -f docker-compose.full.yml down -v
+#
+# Prerequisites:
+#   Clone Documenso first (one-time):
+#   git clone https://github.com/documenso/documenso.git documenso-app --depth=1
+#
+# ── Note on Documenso services ────────────────────────────────────────────────
+# Documenso's testing compose (documenso-app/docker/testing/compose.yml) starts:
+#   - postgres (database)
+#   - documenso (Next.js app on port 3000)
+#   - inbucket (email capture on port 9000)
+# We extend those services here and add our test-runner service on top.
+
+name: documenso-full-test
+
+services:
+
+  # ── Documenso app services (extended from upstream) ──────────────────────
+  # We use `extends` to pull in the upstream service definitions without
+  # duplicating them. If Documenso updates their compose, we get the changes.
+
+  postgres:
+    extends:
+      file: documenso-app/docker/testing/compose.yml
+      service: postgres
+
+  inbucket:
+    extends:
+      file: documenso-app/docker/testing/compose.yml
+      service: inbucket
+
+  documenso:
+    extends:
+      file: documenso-app/docker/testing/compose.yml
+      service: documenso
+    # Add a health check so the test-runner waits until the app is genuinely ready.
+    # The upstream compose may not have one — we add it here.
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_started
+
+  # ── Test runner ───────────────────────────────────────────────────────────
+  # Built from ./Dockerfile.tests. Starts only after Documenso passes its
+  # health check. Writes artifacts to host-mounted volumes.
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    image: documenso-tests:latest
+
+    # Wait for the app — prevents tests failing because Documenso is still
+    # booting (the same problem the "Wait for app to be ready" CI step solves,
+    # but handled by Docker's health check mechanism instead of a bash loop).
+    depends_on:
+      documenso:
+        condition: service_healthy
+
+    environment:
+      BASE_URL:          http://documenso:3000
+      TEST_ENV:          ci
+      CI:                "true"
+      INBUCKET_URL:      http://inbucket:9000
+      SENDER_EMAIL:      sender@test.com
+      SENDER_PASSWORD:   Test1234!
+      SIGNER_EMAIL:      signer@test.com
+      SIGNER_PASSWORD:   Test1234!
+      # DOCUMENSO_API_KEY: set in .env.docker if needed for authenticated API tests
+
+    # Mount artifact directories so results are accessible on the host
+    # after the container exits — essential for CI artifact upload.
+    volumes:
+      - ./test-results:/app/test-results
+      - ./allure-results:/app/allure-results
+      - ./playwright-report:/app/playwright-report
+
+    # Default: run the full ci project. Override with:
+    # docker compose -f docker-compose.full.yml run test-runner tests/security/ --project=ci
+    command: ["--project=ci"]
+
+    # Prevent infinite restarts if tests fail — we want the container to exit
+    # with the test exit code, not loop forever.
+    restart: "no"
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+# Postgres data is stored in a named volume so the DB persists across runs.
+# Remove with: docker compose -f docker-compose.full.yml down -v
+volumes:
+  postgres_data:
