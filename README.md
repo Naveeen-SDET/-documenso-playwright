@@ -8,7 +8,7 @@
 
 Production-grade Playwright + TypeScript test framework for [Documenso](https://documenso.com) — an open-source electronic signature platform operating under eIDAS and UK e-signature regulations.
 
-**145+ tests across 9 test categories. Two CI pipelines. Zero critical defect escapes.**
+**160+ tests across 9 test categories. Two CI pipelines. Zero critical defect escapes.**
 
 ---
 
@@ -68,6 +68,12 @@ These findings were identified through automated security header scanning (OWASP
 | **Performance** | Navigation Timing API budgets — TTFB, DOM interactive, load complete | `@perf` |
 | **Network** | Route mocking (500/401/503/429), signing flow failures, slow response simulation, partial outage, offline abort, transient failure/retry | `@network` |
 | **Cross-browser** | Chromium + Firefox smoke suite, JS error detection | `@cross-browser` |
+
+---
+
+## Architecture decisions
+
+See `docs/mock-vs-real.md` for the full decision framework on when to mock vs hit the real API — including the decision matrix, the tautology trap, and the three things mocking can't fix.
 
 ---
 
