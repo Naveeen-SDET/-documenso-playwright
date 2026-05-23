@@ -20,6 +20,9 @@
 
 import type { Document, DocumentList } from '../schemas/document.schema';
 
+// Re-export so handlers.ts and tests can import the type from one place
+export type { DocumentList };
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const iso = (daysAgo = 0): string => {
