@@ -15,10 +15,12 @@
     "allure:open": "allure open allure-report",
     "allure:serve": "allure serve allure-results",
     "test:allure": "pnpm allure:env && pnpm exec playwright test --project=ci && pnpm allure:generate",
-
     "docker:build": "docker build -f Dockerfile.tests -t documenso-tests:latest .",
-    "docker:test":  "bash scripts/docker-test.sh",
-    "docker:clean": "bash scripts/docker-test.sh --clean"
+    "docker:test": "bash scripts/docker-test.sh",
+    "docker:clean": "bash scripts/docker-test.sh --clean",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:unit:watch": "vitest --config vitest.config.ts",
+    "test:unit:coverage": "vitest run --config vitest.config.ts --coverage"
   },
   "keywords": [],
   "author": "",
@@ -36,7 +38,8 @@
     "jest": "^30.4.2",
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "1.6.0"
   },
   "dependencies": {
     "axios": "^1.16.1",

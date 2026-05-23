@@ -71,6 +71,34 @@ These findings were identified through automated security header scanning (OWASP
 
 ---
 
+## Testing pyramid
+
+This framework spans all four layers of the pyramid, with a deliberate opinion about where to invest:
+
+```
+          ▲
+         /E\      E2E (Playwright UI)
+        /───\     Fewest — slow, brittle, expensive
+       / Int \    Integration/API (Playwright request)
+      /───────\   Most value per test in this stack
+     / Contract \ Contract (Zod schema validation)
+    /─────────────\ Catches API breaking changes cheapest
+   /  Unit tests   \ Pure functions only (Vitest)
+  /─────────────────\ Fastest — data-factory, API client
+```
+
+**Unit** (`pnpm test:unit` — Vitest): Tests pure functions with zero dependencies — the data factory and API client URL/auth logic. These run in under 1 second and catch regressions in the shared infrastructure every test depends on.
+
+**Contract** (`tests/api/contracts.spec.ts`): Zod schema validation against the real API. Every response shape is verified on every CI run. When Documenso changes a field, this layer fails first — not an E2E test three levels up where the root cause is invisible.
+
+**Integration/API** (`tests/api/`): Full CRUD lifecycle, pagination, boundary conditions, error handling — all against the real running app. This is the highest-value layer for a backend-heavy product like Documenso. It gives deep coverage without browser overhead.
+
+**E2E** (`tests/documents/`, `tests/auth/`): Reserved for flows a human must complete: sign-in, document upload, the signing wizard. These are the most expensive to run and the most brittle — kept narrow deliberately.
+
+**The opinion:** In a document-signing platform, the API layer is the product. Investing more in API + contract testing than UI automation is the right call — the UI changes weekly, the API contract must be stable for customer integrations. See `docs/mock-vs-real.md` for the mock vs real decision framework.
+
+---
+
 ## Architecture decisions
 
 See `docs/mock-vs-real.md` for the full decision framework on when to mock vs hit the real API — including the decision matrix, the tautology trap, and the three things mocking can't fix.
