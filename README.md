@@ -105,6 +105,8 @@ See `docs/mock-vs-real.md` for the full decision framework on when to mock vs hi
 
 See `docs/owasp-coverage.md` for the OWASP Top 10 coverage map — which categories are covered by automated tests, which the app boundary prevents testing, and which need dev-level access.
 
+See `docs/gdpr-eidas.md` for the GDPR test coverage extension and eIDAS trust level analysis — SES vs AES vs QES, what testing looks like at each level, and the GDPR/eIDAS tension around audit trail erasure.
+
 ---
 
 ## Stack
