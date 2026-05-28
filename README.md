@@ -35,6 +35,7 @@ These are **real gaps confirmed against Documenso** by this test suite. They are
 | 1 | `X-Content-Type-Options` absent on HTML pages | Medium | OTG-CONFIG-007 | Browsers may MIME-sniff responses — enables content injection via attacker-controlled response bodies |
 | 2 | `Referrer-Policy` absent on HTML pages | Low-Medium | OTG-INFO-002 | Full page URLs (including query-string tokens and document IDs) may leak in the `Referer` header to third-party servers |
 | 3 | `X-Content-Type-Options` absent on API responses | Medium | OTG-CONFIG-007 | API error bodies with user-influenced content could be MIME-sniffed as HTML/script |
+| 4 | `Access-Control-Allow-Origin: *` on `/api/v1` endpoints | Low-Medium | A05:2021 | Wildcard CORS permits non-credentialed cross-origin reads of API responses from any origin |
 
 **Recommended fix for all three**: Add global response headers in `next.config.js` `headers()` or at the reverse-proxy/CDN layer:
 
