@@ -2,8 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 dotenv.config();
 export default defineConfig({
-   globalTeardown: './tests/global-teardown.ts',
-   testDir: './tests',
+  globalTeardown: './tests/global-teardown.ts',
+  testDir: './tests',
+  // Exclude Vitest unit tests — they import from 'vitest', not '@playwright/test'
+  // and will error if Playwright tries to load them
+  testIgnore: ['**/unit/**'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
