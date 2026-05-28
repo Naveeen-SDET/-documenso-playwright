@@ -23,9 +23,22 @@ const config: Config = {
   testMatch: ['**/pact/**/*.spec.ts'],
   testTimeout: 30000,
   // Transform ESM-only packages from pact's dependency tree.
-  // Pattern must NOT include '.pnpm' — Jest resolves symlinks and sees
-  // the canonical /node_modules/<pkg>/ path, not the pnpm store path.
-  transformIgnorePatterns: [`/node_modules/(?!(${ESM_PACKAGES})/)`],
+  //
+  // pnpm stores packages at:
+  //   node_modules/.pnpm/<pkg>@<ver>/node_modules/<pkg>/dist/index.js
+  //                                  ^^^ inner node_modules
+  //
+  // A naive /node_modules/(?!(pkg))/ pattern matches at the OUTER node_modules
+  // (seeing ".pnpm/" which is not in the exclude list) and ignores the file
+  // before the inner check can run.
+  //
+  // Fix: target the INNER node_modules inside the pnpm store explicitly:
+  //   /node_modules/.pnpm/[^/]+/node_modules/(?!(pkg)/)
+  // This only matches the second node_modules segment, so the negative
+  // lookahead correctly sees the actual package name.
+  transformIgnorePatterns: [
+    `/node_modules/.pnpm/[^/]+/node_modules/(?!(${ESM_PACKAGES})/)`,
+  ],
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
