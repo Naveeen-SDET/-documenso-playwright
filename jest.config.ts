@@ -22,8 +22,10 @@ const config: Config = {
   testEnvironment: 'node',
   testMatch: ['**/pact/**/*.spec.ts'],
   testTimeout: 30000,
-  // Transform ESM-only packages from pact's dependency tree
-  transformIgnorePatterns: [`/node_modules/.pnpm/(?!(${ESM_PACKAGES}))`],
+  // Transform ESM-only packages from pact's dependency tree.
+  // Pattern must NOT include '.pnpm' — Jest resolves symlinks and sees
+  // the canonical /node_modules/<pkg>/ path, not the pnpm store path.
+  transformIgnorePatterns: [`/node_modules/(?!(${ESM_PACKAGES})/)`],
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
