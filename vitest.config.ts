@@ -19,8 +19,9 @@ import { defineConfig } from 'vitest/config';
  */
 export default defineConfig({
   test: {
-    // Only pick up files in tests/unit/ — does not conflict with Jest's pact/**
-    include: ['tests/unit/**/*.spec.ts'],
+    // Pick up files in unit/ (project root) — kept outside tests/ so
+    // Playwright's testDir ('tests/') never discovers them
+    include: ['unit/**/*.spec.ts'],
 
     environment: 'node',
 

@@ -4,11 +4,6 @@ dotenv.config();
 export default defineConfig({
   globalTeardown: './tests/global-teardown.ts',
   testDir: './tests',
-  // Exclude Vitest unit tests — they import from 'vitest', not '@playwright/test'
-  // and will error if Playwright tries to load them.
-  // Regex used instead of glob — Playwright's glob matching of **/unit/**
-  // against absolute paths is unreliable across versions.
-  testIgnore: [/[\\/]unit[\\/]/],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
