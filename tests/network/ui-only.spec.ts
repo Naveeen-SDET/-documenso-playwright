@@ -408,9 +408,8 @@ test.describe('@network @ui-only Sign page — mocked API responses', () => {
     await page.goto('/sign/expired-or-invalid-token');
     await page.waitForLoadState('networkidle');
 
-    // After a 500, Documenso may redirect to /signin or stay on /documents.
-    // The real assertion is no unhandled JS errors (below).
-    expect(page.url()).toMatch(/\/(documents|signin)/);
+    // tRPC 404 shows an inline error state — stays on /sign/, no redirect
+    expect(page.url()).toContain('/sign/');
 
     const critical = jsErrors.filter(
       e => !e.toLowerCase().includes('extension') &&
