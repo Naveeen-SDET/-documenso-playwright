@@ -37,7 +37,7 @@ These are **real gaps confirmed against Documenso** by this test suite. They are
 | 3 | `X-Content-Type-Options` absent on API responses | Medium | OTG-CONFIG-007 | API error bodies with user-influenced content could be MIME-sniffed as HTML/script |
 | 4 | `Access-Control-Allow-Origin: *` on `/api/v1` endpoints | Low-Medium | A05:2021 | Wildcard CORS permits non-credentialed cross-origin reads of API responses from any origin |
 
-**Recommended fix for all three**: Add global response headers in `next.config.js` `headers()` or at the reverse-proxy/CDN layer:
+**Recommended fix**: Add global response headers in `next.config.js` `headers()` or at the reverse-proxy/CDN layer:
 
 ```js
 // next.config.js
@@ -117,7 +117,10 @@ See `docs/gdpr-eidas.md` for the GDPR test coverage extension and eIDAS trust le
 | **Playwright** | E2E automation, API testing, network interception, visual regression |
 | **TypeScript** | Type safety across tests, fixtures, and API client |
 | **Zod** | API response schema validation (contract testing) |
+| **Vitest** | Unit tests for data factory and API client (44 tests, <1s) |
+| **Jest + Pact** | Consumer/provider contract tests against the documents API |
 | **axe-core** | WCAG 2.1 AA accessibility auditing |
+| **Allure** | Test reporting with trend history and failure categorisation |
 | **Docker Compose** | Full Documenso stack locally (app + Postgres + Inbucket) |
 | **GitHub Actions** | CI — smoke on every PR, nightly parallel regression |
 | **pnpm** | Package manager |
@@ -134,15 +137,17 @@ Push / PR → checkout → install → clone documenso → docker up
          → done in under 5 minutes
 ```
 
-### Nightly regression — 4 parallel jobs
+### Nightly regression — 6 parallel jobs
 
 ```
-00:00 UTC → ┌─ JOB 1: API tests         (all tests/api/)
-            ├─ JOB 2: Security tests    (all tests/security/)
-            ├─ JOB 3: Accessibility     (all tests/accessibility/)
-            └─ JOB 4: Firefox           (cross-browser smoke)
+00:00 UTC → ┌─ JOB 1: API + contract tests  (tests/api/)
+            ├─ JOB 2: Security tests        (tests/security/ + tests/network/)
+            ├─ JOB 3: Accessibility         (tests/accessibility/)
+            ├─ JOB 4: Firefox               (cross-browser smoke)
+            ├─ JOB 5: Unit + Pact           (vitest + jest)
+            └─ JOB 6: Allure report         (aggregates all results, publishes trend)
 
-Total time = slowest single job (~10 min), not sum of all jobs.
+Total time = slowest single job (~10 min), not the sum.
 Each job spins up its own fresh Ubuntu runner + Docker stack.
 ```
 
@@ -154,26 +159,42 @@ Each job spins up its own fresh Ubuntu runner + Docker stack.
 documenso-playwright/
 ├── .github/workflows/
 │   ├── smoke.yml          # Every push/PR — fast Chromium smoke
-│   └── regression.yml     # Nightly — 4 parallel jobs
+│   ├── regression.yml     # Nightly — 6 parallel jobs + Allure report
+│   └── schema-check.yml   # TypeScript type check on every PR
 ├── api/
 │   └── documents.api.ts   # Typed REST client wrapping Playwright APIRequestContext
 ├── config/
-│   └── env.ts             # Typed env loader — fails fast on missing vars
+│   └── env.ts             # Zod-validated env loader — fails fast on missing vars
+├── docs/
+│   ├── gdpr-eidas.md      # GDPR/eIDAS compliance analysis + test coverage
+│   ├── mock-vs-real.md    # Decision framework: when to mock vs use real API
+│   └── owasp-coverage.md  # OWASP Top 10 coverage map
+├── mocks/
+│   ├── fixtures.ts        # 15 typed mock response datasets
+│   └── handlers.ts        # Named route handler factories (MSW-style)
+├── pact/                  # Consumer/provider contract tests
 ├── pages/                 # Page Object Model — BasePage, LoginPage, DashboardPage, DocumentPage
+├── reporters/
+│   ├── flaky-detector.reporter.ts   # Surfaces tests that only pass on retry
+│   └── markdown-summary.reporter.ts # Writes test-results/summary.md on every run
 ├── schemas/
 │   └── document.schema.ts # Zod schemas: DocumentSchema, RecipientSchema, FieldSchema, AuditLogSchema
+├── scripts/
+│   ├── generate-test.ts   # AI CLI: generates Zod schema + Playwright test from endpoint spec
+│   └── suggest-edge-cases.ts # AI CLI: suggests missing edge cases for a test file
 ├── tests/
-│   ├── setup/             # Auth state generation — creates .auth/sender.json + .auth/signer.json
-│   ├── smoke/             # App availability, signin page, cross-browser
-│   ├── auth/              # Login flows, logout, session enforcement
-│   ├── documents/         # Dashboard and document list
-│   ├── api/               # REST API tests — CRUD, contracts, boundary conditions
-│   ├── security/          # Auth guards, RBAC, JWT validation
+│   ├── setup/             # Auth state generation — .auth/sender.json + .auth/signer.json
+│   ├── smoke/             # App availability, cross-browser
+│   ├── auth/              # Login, logout, session enforcement
+│   ├── documents/         # Dashboard, upload, signing flow, hybrid pattern
+│   ├── api/               # CRUD, contracts, boundary conditions, negative tests
+│   ├── security/          # Auth guards, RBAC, JWT, cookie attributes, input validation
 │   ├── accessibility/     # axe-core WCAG 2.1 AA
-│   ├── audit/             # Audit trail immutability + event taxonomy
+│   ├── audit/             # Audit trail immutability + 21-event taxonomy
 │   ├── performance/       # Navigation Timing API budgets
-│   ├── network/           # Route mocking and request observation
+│   ├── network/           # Route mocking — 500/503/429/slow/abort/transient failure
 │   └── visual/            # Screenshot regression with dynamic masking
+├── unit/                  # Vitest unit tests — data factory + API client (44 tests)
 ├── utils/
 │   └── data-factory.ts    # nanoid-prefixed test data — parallel-safe
 └── tests/fixtures.ts      # Custom fixtures: senderPage, signerPage, apiContext, documentFixture
