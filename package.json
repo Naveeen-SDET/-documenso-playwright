@@ -20,7 +20,9 @@
     "docker:clean": "bash scripts/docker-test.sh --clean",
     "test:unit": "vitest run --config vitest.config.ts",
     "test:unit:watch": "vitest --config vitest.config.ts",
-    "test:unit:coverage": "vitest run --config vitest.config.ts --coverage"
+    "test:unit:coverage": "vitest run --config vitest.config.ts --coverage",
+    "agent": "ts-node scripts/test-agent.ts",
+    "agent:dry-run": "ts-node scripts/test-agent.ts --dry-run"
   },
   "keywords": [],
   "author": "",
