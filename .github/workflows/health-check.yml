@@ -1,0 +1,62 @@
+name: Health Check
+
+on:
+  schedule:
+    # Every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    # Allow manual trigger from GitHub UI
+
+jobs:
+  health-check:
+    name: API Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Clone Documenso
+        run: |
+          if [ ! -d "documenso-app" ]; then
+            git clone --depth 1 https://github.com/documenso/documenso.git documenso-app
+          fi
+
+      - name: Start Documenso stack
+        run: |
+          cd documenso-app
+          docker compose -f docker/testing/compose.yml up -d
+          echo "Waiting for app to be ready..."
+          timeout 120 bash -c 'until curl -sf http://localhost:3000 > /dev/null; do sleep 3; done'
+          echo "Documenso is ready"
+
+      - name: Run health checks
+        env:
+          BASE_URL: http://localhost:3000
+          DOCUMENSO_API_KEY: ${{ secrets.DOCUMENSO_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TEST_ENV: ci
+        run: pnpm run health-check
+
+      - name: Upload health log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-check-failure-${{ github.run_id }}
+          path: health-check-logs/
+          retention-days: 7

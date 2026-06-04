@@ -22,7 +22,8 @@
     "test:unit:watch": "vitest --config vitest.config.ts",
     "test:unit:coverage": "vitest run --config vitest.config.ts --coverage",
     "agent": "ts-node scripts/test-agent.ts",
-    "agent:dry-run": "ts-node scripts/test-agent.ts --dry-run"
+    "agent:dry-run": "ts-node scripts/test-agent.ts --dry-run",
+    "health-check": "ts-node scripts/health-check.ts"
   },
   "keywords": [],
   "author": "",
