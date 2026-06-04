@@ -35,7 +35,15 @@ dotenv.config();
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000';
 const API_KEY  = process.env.DOCUMENSO_API_KEY ?? '';
 
+// Skip entire suite if app is not reachable (local dev without Docker)
 test.describe('@smoke @generated — AI-generated Documenso smoke suite', () => {
+  test.beforeAll(async ({ request }) => {
+    try {
+      await request.get(BASE_URL, { timeout: 3000 });
+    } catch {
+      test.skip(true, 'Documenso not reachable at ' + BASE_URL + ' — start Docker first');
+    }
+  });
 
   // ── App availability ──────────────────────────────────────────────────────
 
