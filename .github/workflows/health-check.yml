@@ -1,11 +1,11 @@
 name: Health Check
 
 on:
-  schedule:
-    # Every 6 hours
-    - cron: '0 */6 * * *'
+  # Schedule disabled — enable when pointing at a persistent environment
+  # schedule:
+  #   - cron: '0 */6 * * *'
   workflow_dispatch:
-    # Allow manual trigger from GitHub UI
+    # Trigger manually from GitHub UI: Actions → Health Check → Run workflow
 
 jobs:
   health-check:
