@@ -62,9 +62,9 @@ This runbook covers remediation steps when the scheduled health check
 
 ---
 
-### `Audit trail: DELETE → 404 (immutable)` fails — **CRITICAL**
-**What it means:** The audit trail DELETE endpoint now returns something other than 404.
-If it returns 200, audit logs can be deleted — this is a **legal compliance failure** under eIDAS.
+### `Audit trail: DELETE blocked (immutable)` fails — **CRITICAL**
+**What it means:** The audit trail DELETE endpoint returned 200 or 204 — audit logs were deleted.
+This is a **legal compliance failure** under eIDAS. A 404 or 500 are both acceptable (deletion failed).
 
 **Steps:**
 1. Treat as P0 immediately

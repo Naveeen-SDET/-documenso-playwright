@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-06-04T19:15:54.162Z",
+  "environment": "unknown",
+  "baseUrl": "http://localhost:3000",
+  "overallStatus": "DEGRADED",
+  "checks": [
+    {
+      "name": "App root reachable",
+      "url": "http://localhost:3000",
+      "passed": true,
+      "statusCode": 200,
+      "responseTimeMs": 822,
+      "error": null,
+      "detail": "HTTP 200 in 822ms"
+    },
+    {
+      "name": "Signin page loads",
+      "url": "http://localhost:3000/signin",
+      "passed": true,
+      "statusCode": 200,
+      "responseTimeMs": 679,
+      "error": null,
+      "detail": "HTTP 200 in 679ms"
+    },
+    {
+      "name": "Auth guard: no token → 400",
+      "url": "http://localhost:3000/api/v1/documents",
+      "passed": true,
+      "statusCode": 400,
+      "responseTimeMs": 663,
+      "error": null,
+      "detail": "HTTP 400 in 663ms"
+    },
+    {
+      "name": "API: authenticated list → 200",
+      "url": "http://localhost:3000/api/v1/documents",
+      "passed": true,
+      "statusCode": 200,
+      "responseTimeMs": 873,
+      "error": null,
+      "detail": "HTTP 200 in 873ms"
+    },
+    {
+      "name": "Audit trail: DELETE → 404 (immutable)",
+      "url": "http://localhost:3000/api/v1/documents/1/audit-logs",
+      "passed": false,
+      "statusCode": 500,
+      "responseTimeMs": 704,
+      "error": null,
+      "detail": "HTTP 500 in 704ms (expected 404)"
+    }
+  ],
+  "failureCount": 1,
+  "alertSent": false
+}
