@@ -5,7 +5,7 @@ import {
   generateEmail,
   type DocumentData,
   type UserData,
-} from '../../utils/data-factory';
+} from '../utils/data-factory';
 
 /**
  * Unit tests — utils/data-factory.ts

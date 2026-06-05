@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, type MockInstance } from 'vitest';
 import type { APIRequestContext } from '@playwright/test';
-import { ApiClient } from '../../api/apiClient';
-import { DocumentsApi } from '../../api/documents.api';
+import { ApiClient } from '../api/apiClient';
+import { DocumentsApi } from '../api/documents.api';
 
 /**
  * Unit tests — api/apiClient.ts + api/documents.api.ts
