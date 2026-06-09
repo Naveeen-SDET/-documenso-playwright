@@ -10,6 +10,17 @@ Production-grade Playwright + TypeScript test framework for [Documenso](https://
 
 **175+ tests across 9 test categories. Two CI pipelines. Zero critical defect escapes.**
 
+## Quality metrics
+
+| Metric | Value | Target |
+|---|---|---|
+| Test pass rate | 99.6% | ≥ 99% |
+| Flake rate | 0% | < 2% |
+| Mutation score | 55% overall / 100% data-factory | ≥ 70% covered |
+| Unit test coverage | 87% | ≥ 80% |
+
+See [docs/quality-metrics.md](docs/quality-metrics.md) for full dashboard, trend history, and metric definitions.
+
 ---
 
 ## Why this project exists
