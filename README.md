@@ -114,6 +114,8 @@ This framework spans all four layers of the pyramid, with a deliberate opinion a
 
 ## Architecture decisions
 
+See `docs/test-strategy.md` for the complete test strategy — risk profile, pyramid rationale, coverage decisions, what is explicitly not tested and why, tooling decisions, quality gates, and regulatory considerations.
+
 See `docs/mock-vs-real.md` for the full decision framework on when to mock vs hit the real API — including the decision matrix, the tautology trap, and the three things mocking can't fix.
 
 See `docs/owasp-coverage.md` for the OWASP Top 10 coverage map — which categories are covered by automated tests, which the app boundary prevents testing, and which need dev-level access.
