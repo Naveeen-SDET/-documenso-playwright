@@ -141,8 +141,8 @@ jobs:
             sleep 5
           done
 
-      - name: Run security and network tests
-        run: pnpm exec playwright test tests/security/ tests/network/ --project=ci
+      - name: Run security, network, and chaos tests
+        run: pnpm exec playwright test tests/security/ tests/network/ tests/chaos/ --project=ci
         env:
           BASE_URL: http://localhost:3000
           SENDER_EMAIL: sender@test.com

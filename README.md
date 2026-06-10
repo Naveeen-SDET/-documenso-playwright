@@ -8,7 +8,7 @@
 
 Production-grade Playwright + TypeScript test framework for [Documenso](https://documenso.com) — an open-source electronic signature platform operating under eIDAS and UK e-signature regulations.
 
-**175+ tests across 9 test categories. Two CI pipelines. Zero critical defect escapes.**
+**190+ tests across 10 test categories. Two CI pipelines. Zero critical defect escapes.**
 
 ## Quality metrics
 
@@ -79,6 +79,7 @@ These findings were identified through automated security header scanning (OWASP
 | **Audit trail** | REST immutability, UI log verification, tRPC observation, 21-event taxonomy | `@audit` |
 | **Performance** | Navigation Timing API budgets — TTFB, DOM interactive, load complete | `@perf` |
 | **Network** | Route mocking (500/401/503/429), signing flow failures, slow response simulation, partial outage, offline abort, transient failure/retry | `@network` |
+| **Chaos** | Cascading failure (REST + tRPC simultaneously), mid-flow injection, Chaos Monkey (50% failure rate), concurrent request storm, recovery after chaos clears, corrupted JSON response | `@chaos` |
 | **Cross-browser** | Chromium + Firefox smoke suite, JS error detection | `@cross-browser` |
 
 ---
@@ -152,7 +153,7 @@ Push / PR → checkout → install → clone documenso → docker up
 
 ```
 00:00 UTC → ┌─ JOB 1: API + contract tests  (tests/api/)
-            ├─ JOB 2: Security tests        (tests/security/ + tests/network/)
+            ├─ JOB 2: Security + Chaos      (tests/security/ + tests/network/ + tests/chaos/)
             ├─ JOB 3: Accessibility         (tests/accessibility/)
             ├─ JOB 4: Firefox               (cross-browser smoke)
             ├─ JOB 5: Unit + Pact           (vitest + jest)
@@ -204,6 +205,7 @@ documenso-playwright/
 │   ├── audit/             # Audit trail immutability + 21-event taxonomy
 │   ├── performance/       # Navigation Timing API budgets
 │   ├── network/           # Route mocking — 500/503/429/slow/abort/transient failure
+│   ├── chaos/             # Chaos engineering — cascading failures, Chaos Monkey, recovery
 │   └── visual/            # Screenshot regression with dynamic masking
 ├── unit/                  # Vitest unit tests — data factory + API client (44 tests)
 ├── utils/
