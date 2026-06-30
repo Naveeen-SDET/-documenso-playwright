@@ -125,10 +125,21 @@ test.describe('@smoke @generated — AI-generated Documenso smoke suite', () => 
   });
 
   test('root response includes x-content-type-options header', async ({ request }) => {
-    // test.fail() must be INSIDE the test body — not outside, or it affects all subsequent tests
-    test.fail(true, 'KNOWN FINDING: x-content-type-options header absent on HTML responses (OWASP OTG-CONFIG-007)');
+    // test.fail() must be INSIDE the test body — not outside, or it affects all subsequent tests.
+    // Check the live header BEFORE deciding whether to xfail: CI clones documenso/documenso
+    // fresh every run, so if upstream ships this fix with zero commits on our side, calling
+    // test.fail() unconditionally would flip CI red for the "wrong" reason (xfail unexpectedly
+    // passing) instead of just letting the test pass outright.
     const res = await request.get(BASE_URL);
-    expect(res.headers()['x-content-type-options']).toBe('nosniff');
+    const header = res.headers()['x-content-type-options'];
+
+    if (header === 'nosniff') {
+      console.log('✓ RESOLVED UPSTREAM: x-content-type-options is now set — known finding fixed, removing test.fail() next pass');
+      return;
+    }
+
+    test.fail(true, 'KNOWN FINDING: x-content-type-options header absent on HTML responses (OWASP OTG-CONFIG-007)');
+    expect(header).toBe('nosniff');
   });
 
 });

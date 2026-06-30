@@ -415,9 +415,11 @@ test.describe('@security @owasp A05 — Security misconfiguration', () => {
     // Severity: Low-Medium. While browsers block credentialed requests to wildcard origins,
     // the server returning * is a misconfiguration — it permits non-credentialed cross-origin
     // reads of API responses. Fix: restrict ACAO to a specific allow-list of origins.
-    // If Documenso ships a fix, this test will flip to "unexpectedly passed".
-    test.fail(true, 'KNOWN FINDING: Documenso returns Access-Control-Allow-Origin: * on /api/v1 (OWASP A05)');
-
+    //
+    // CI clones documenso/documenso fresh every nightly run, so this could be fixed
+    // upstream with zero commits on our side. Check the live header BEFORE deciding
+    // whether to xfail — calling test.fail() unconditionally means the day upstream
+    // fixes this, our CI breaks for the "wrong" reason (an xfail unexpectedly passing).
     const res = await safeRequest(
       () => request.get(`${env.baseUrl}/api/v1/documents`, {
         headers: {
@@ -429,6 +431,13 @@ test.describe('@security @owasp A05 — Security misconfiguration', () => {
     );
 
     const acao = res.headers()['access-control-allow-origin'];
+
+    if (acao !== '*') {
+      console.log('✓ RESOLVED UPSTREAM: ACAO wildcard no longer returned — known finding fixed, removing test.fail() next pass');
+      return;
+    }
+
+    test.fail(true, 'KNOWN FINDING: Documenso returns Access-Control-Allow-Origin: * on /api/v1 (OWASP A05)');
 
     expect(
       acao,

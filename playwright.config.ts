@@ -49,15 +49,25 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     // Firefox cross-browser — run explicitly: pnpm exec playwright test --project=firefox
-{
-  name: 'firefox',
-  use: {
-    ...devices['Desktop Firefox'],
-    storageState: '.auth/sender.json',
-  },
-  dependencies: ['setup'],
-  testIgnore: ['**/setup/**', '**/visual/**'],
-},
+    //
+    // No `dependencies: ['setup']` here on purpose. The only spec run under this
+    // project in CI (tests/smoke/cross-browser.spec.ts) overrides storageState to
+    // an empty context per describe block — it never reads .auth/sender.json.
+    // Declaring a dependency on 'setup' anyway forced Playwright to run the UI
+    // login flow (auth.setup.spec.ts) before every firefox run; if that login
+    // hiccuped for any reason (slow Docker warm-up, selector timing), the whole
+    // firefox project was reported as failed even though the actual tests never
+    // needed auth. Removing the dependency removes that single point of failure.
+    // If a firefox spec ever needs auth, set storageState explicitly inside that
+    // spec file (or add the dependency back for that project) rather than here.
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: '.auth/sender.json',
+      },
+      testIgnore: ['**/setup/**', '**/visual/**'],
+    },
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], storageState: '.auth/sender.json' },

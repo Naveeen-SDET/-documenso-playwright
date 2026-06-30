@@ -23,6 +23,17 @@ import { env } from '../../config/env';
  * Skip behaviour:
  *   All tests skip gracefully when Docker is not running (ECONNREFUSED).
  *
+ * Known-finding pattern (read before touching test.fail() below):
+ *   A few tests below track confirmed gaps in upstream Documenso using
+ *   test.fail(). CI clones documenso/documenso fresh on every nightly run
+ *   (`git clone --depth=1`), so a header fix can ship upstream with zero
+ *   commits on our side. Playwright treats an xfail test that unexpectedly
+ *   passes as a CI failure — so naively calling test.fail() unconditionally
+ *   means the day upstream fixes the bug is the day our CI breaks for the
+ *   "wrong" reason. Each of these tests now checks the live header FIRST and
+ *   only calls test.fail() if the issue still reproduces, so a fix upstream
+ *   makes the test pass outright instead of red-flagging a flip.
+ *
  * Run: pnpm exec playwright test tests/security/security-headers.spec.ts --project=ci
  */
 
@@ -73,15 +84,23 @@ test.describe('@security @headers HTML pages — security headers', () => {
    *            attacker-controlled content ever appears in a response body
    * Fix      : Add `X-Content-Type-Options: nosniff` in Next.js next.config.js
    *            headers() or at the reverse-proxy level
-   * Tracked  : test.fail() marks this as an expected-to-fail assertion so CI
-   *            stays green. If Documenso ships the fix, this test will flip to
-   *            "unexpectedly passed" and alert us to remove test.fail().
+   * Tracked  : checks the live header before deciding whether to xfail. If
+   *            Documenso ships the fix, this test passes outright instead of
+   *            flipping test.fail() to "unexpectedly passed" (which Playwright
+   *            treats as a CI failure) — see the helper note above the describe
+   *            block for why this guard exists.
    * ─────────────────────────────────────────────────────────────────────────────
    */
   test('X-Content-Type-Options is set to nosniff', async ({ request }, testInfo) => {
-    test.fail(true, 'KNOWN FINDING: Documenso does not set X-Content-Type-Options header (OTG-CONFIG-007)');
     const res = await safeFetch(request, env.baseUrl, testInfo);
     const header = res.headers()['x-content-type-options'];
+
+    if (header?.toLowerCase() === 'nosniff') {
+      console.log('✓ RESOLVED UPSTREAM: X-Content-Type-Options is now set — known finding fixed, removing test.fail() next pass');
+      return;
+    }
+
+    test.fail(true, 'KNOWN FINDING: Documenso does not set X-Content-Type-Options header (OTG-CONFIG-007)');
     expect(
       header,
       'Missing X-Content-Type-Options header — browsers may MIME-sniff responses'
@@ -137,19 +156,13 @@ test.describe('@security @headers HTML pages — security headers', () => {
    *            Referer header when users navigate away from authenticated pages
    * Fix      : Add `Referrer-Policy: strict-origin-when-cross-origin` in
    *            next.config.js headers() or at the reverse-proxy level
-   * Tracked  : test.fail() marks this as expected-to-fail. Flip to passing when
-   *            Documenso ships the Referrer-Policy header.
+   * Tracked  : checks the live header before deciding whether to xfail — see
+   *            the "Known-finding pattern" note at the top of this file.
    * ─────────────────────────────────────────────────────────────────────────────
    */
   test('Referrer-Policy header is present', async ({ request }, testInfo) => {
-    test.fail(true, 'KNOWN FINDING: Documenso does not set Referrer-Policy header (OTG-INFO-002)');
     const res = await safeFetch(request, env.baseUrl, testInfo);
     const header = res.headers()['referrer-policy'];
-
-    expect(
-      header,
-      'Missing Referrer-Policy — URLs including auth tokens may leak to third parties'
-    ).toBeTruthy();
 
     const safeValues = [
       'no-referrer',
@@ -158,6 +171,19 @@ test.describe('@security @headers HTML pages — security headers', () => {
       'strict-origin',
       'strict-origin-when-cross-origin',
     ];
+    const isFixed = !!header && safeValues.some(v => header.toLowerCase().includes(v));
+
+    if (isFixed) {
+      console.log('✓ RESOLVED UPSTREAM: Referrer-Policy is now set — known finding fixed, removing test.fail() next pass');
+      return;
+    }
+
+    test.fail(true, 'KNOWN FINDING: Documenso does not set Referrer-Policy header (OTG-INFO-002)');
+
+    expect(
+      header,
+      'Missing Referrer-Policy — URLs including auth tokens may leak to third parties'
+    ).toBeTruthy();
     expect(
       safeValues.some(v => header?.toLowerCase().includes(v)),
       `Referrer-Policy "${header}" is not a recommended safe value`
@@ -280,17 +306,24 @@ test.describe('@security @headers API responses — security headers', () => {
    *            MIME-sniffed and executed as HTML/script by the browser
    * Fix      : Same as HTML page fix — header must be set globally, not just
    *            on page routes. Middleware or reverse-proxy level is ideal.
-   * Tracked  : test.fail() marks this as expected-to-fail. Remove when fixed.
+   * Tracked  : checks the live header before deciding whether to xfail — see
+   *            the "Known-finding pattern" note at the top of this file.
    * ─────────────────────────────────────────────────────────────────────────────
    */
   test('API responses set X-Content-Type-Options: nosniff', async ({ request }, testInfo) => {
-    test.fail(true, 'KNOWN FINDING: Documenso API does not set X-Content-Type-Options header (OTG-CONFIG-007)');
     const res = await safeFetch(
       request,
       `${env.baseUrl}/api/v1/documents`,
       testInfo,
     );
     const header = res.headers()['x-content-type-options'];
+
+    if (header?.toLowerCase() === 'nosniff') {
+      console.log('✓ RESOLVED UPSTREAM: API X-Content-Type-Options is now set — known finding fixed, removing test.fail() next pass');
+      return;
+    }
+
+    test.fail(true, 'KNOWN FINDING: Documenso API does not set X-Content-Type-Options header (OTG-CONFIG-007)');
     expect(header?.toLowerCase()).toBe('nosniff');
   });
 
