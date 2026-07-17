@@ -27,9 +27,20 @@ jobs:
   # CI safe: yes — uses public endpoints, no pre-seeded accounts needed
   # ════════════════════════════════════════════════════════════════════════════
   api-tests:
-    name: API Tests
+    name: API Tests (shard ${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # ── Sharding ────────────────────────────────────────────────────────────────
+    # GitHub Actions matrix creates N copies of this job running simultaneously.
+    # Each copy gets a different value of matrix.shard (1 or 2).
+    # Playwright's --shard flag splits the test files between them:
+    #   shard 1/2 → first half of tests/api/
+    #   shard 2/2 → second half of tests/api/
+    # Total wall-clock time ≈ halved. Each shard uploads its own artifacts.
+    strategy:
+      matrix:
+        shard: [1, 2]
 
     steps:
       - uses: actions/checkout@v4
@@ -64,8 +75,8 @@ jobs:
             sleep 5
           done
 
-      - name: Run API tests
-        run: pnpm exec playwright test tests/api/ --project=ci
+      - name: Run API tests (shard ${{ matrix.shard }}/2)
+        run: pnpm exec playwright test tests/api/ --project=ci --shard=${{ matrix.shard }}/2
         env:
           BASE_URL: http://localhost:3000
           SENDER_EMAIL: sender@test.com
@@ -78,7 +89,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: api-test-summary
+          name: api-test-summary-shard-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
 
@@ -86,7 +97,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: allure-results-api
+          name: allure-results-api-shard-${{ matrix.shard }}
           path: allure-results/
           retention-days: 7
 
@@ -94,7 +105,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: api-test-report
+          name: api-test-report-shard-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 7
 
