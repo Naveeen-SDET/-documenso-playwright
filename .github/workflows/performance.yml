@@ -1,0 +1,176 @@
+name: Performance Tests (k6)
+
+on:
+  # Run nightly alongside the regression suite
+  schedule:
+    - cron: '30 0 * * *'   # 00:30 UTC — 30 min after regression kicks off
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Which test to run'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - load
+          - stress
+
+# ── What is k6? ────────────────────────────────────────────────────────────────
+# k6 is a load testing tool. Unlike Playwright (which tests one user through
+# a browser), k6 simulates hundreds of concurrent users making HTTP requests.
+#
+# This workflow runs three progressively heavier tests:
+#   smoke  — 1 VU / 30s — "is the app responding?"
+#   load   — ramp to 10 VUs / 8 min — "does it stay fast under normal traffic?"
+#   stress — ramp to 50 VUs / 7 min — "where does it start to degrade?"
+#
+# The smoke test always runs. Load and stress are optional (manual dispatch or
+# nightly). Running stress on every PR would be wasteful and slow.
+# ──────────────────────────────────────────────────────────────────────────────
+
+jobs:
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 1 — Smoke load test (always runs)
+  # Confirms the app is alive and responding within budget before nightly tests.
+  # ════════════════════════════════════════════════════════════════════════════
+  k6-smoke:
+    name: k6 Smoke (1 VU / 30s)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Documenso test environment setup
+        uses: ./.github/actions/documenso-setup
+        with:
+          install-playwright: 'false'   # k6 doesn't need a browser
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] \
+            https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update -qq
+          sudo apt-get install -y k6
+
+      - name: Run k6 smoke test
+        run: k6 run k6/smoke.k6.js
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: Upload k6 results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-smoke-results
+          path: k6/results/
+          retention-days: 7
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 2 — Load test (nightly or manual)
+  # 10 VUs for 8 minutes — validates performance under normal traffic levels.
+  # ════════════════════════════════════════════════════════════════════════════
+  k6-load:
+    name: k6 Load (10 VUs / 8m)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: k6-smoke   # only run if smoke passes
+    if: github.event_name == 'schedule' || github.event.inputs.test_type == 'load' || github.event.inputs.test_type == 'stress'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Documenso test environment setup
+        uses: ./.github/actions/documenso-setup
+        with:
+          install-playwright: 'false'
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] \
+            https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update -qq
+          sudo apt-get install -y k6
+
+      - name: Run k6 load test
+        run: |
+          mkdir -p k6/results
+          k6 run --out json=k6/results/load.json k6/load.k6.js
+        env:
+          BASE_URL:            http://localhost:3000
+          DOCUMENSO_API_KEY:   ${{ secrets.DOCUMENSO_API_KEY }}
+
+      - name: Upload k6 results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-load-results
+          path: k6/results/
+          retention-days: 14
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 3 — Stress test (manual trigger only)
+  # Ramps to 50 VUs to find the breaking point. Not run automatically because
+  # stress tests are intentionally destructive — run deliberately.
+  # ════════════════════════════════════════════════════════════════════════════
+  k6-stress:
+    name: k6 Stress (50 VUs / 7m)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: k6-smoke
+    if: github.event.inputs.test_type == 'stress'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Documenso test environment setup
+        uses: ./.github/actions/documenso-setup
+        with:
+          install-playwright: 'false'
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] \
+            https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update -qq
+          sudo apt-get install -y k6
+
+      - name: Run k6 stress test
+        # Stress tests often fail thresholds by design — we capture the results
+        # regardless. The findings (at what VU count does p95 exceed 500ms?)
+        # are more valuable than a binary pass/fail.
+        run: |
+          mkdir -p k6/results
+          k6 run --out json=k6/results/stress.json k6/stress.k6.js || true
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: Upload k6 stress results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-stress-results
+          path: k6/results/
+          retention-days: 30   # keep stress results longer for trend analysis

@@ -24,7 +24,10 @@
     "agent": "ts-node scripts/test-agent.ts",
     "agent:dry-run": "ts-node scripts/test-agent.ts --dry-run",
     "health-check": "ts-node scripts/health-check.ts",
-    "mutation": "stryker run stryker.config.mjs"
+    "mutation": "stryker run stryker.config.mjs",
+    "k6:smoke": "k6 run k6/smoke.k6.js",
+    "k6:load": "k6 run k6/load.k6.js",
+    "k6:stress": "k6 run k6/stress.k6.js"
   },
   "keywords": [],
   "author": "",
