@@ -3,8 +3,12 @@ node_modules/
 dist/
 test-results/
 playwright-report/
+allure-report/
 .env
 documenso-app/
 allure-results/
 health-check-logs/
+.stryker-tmp/
+reports/
+k6/results/
 

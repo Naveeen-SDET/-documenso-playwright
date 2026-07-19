@@ -1,5 +1,5 @@
 /**
- * Fixture Patterns — demonstration suite (Day 61)
+ * Fixture Patterns — demonstration suite
  *
  * These tests exist to prove the 3 advanced fixture patterns work correctly.
  * They are not testing business logic. Think of them as "tests for your test

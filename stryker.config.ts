@@ -1,7 +1,7 @@
 import type { Config } from '@stryker-mutator/api/config';
 
 /**
- * Stryker mutation testing config (Day 55)
+ * Stryker mutation testing configuration
  *
  * Targets: utils/data-factory.ts and api/documents.api.ts
  * Runner: Vitest (vitest@1.6.0 — locked on Windows, do not upgrade)

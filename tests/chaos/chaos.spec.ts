@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test';
 import { env } from '../../config/env';
 
 /**
- * Day 58 — Chaos Testing
+ * Chaos Testing
  *
  * Chaos testing deliberately injects unpredictable, cascading, or concurrent
  * failure conditions to verify the application degrades safely under adversity.
  *
- * How this differs from tests/network/api-failures.spec.ts (Day 41):
+ * How this differs from tests/network/api-failures.spec.ts:
  * ─────────────────────────────────────────────────────────────────────
  * api-failures.spec.ts  → one endpoint fails, once, predictably
  * chaos.spec.ts         → multiple endpoints fail simultaneously, mid-flow,

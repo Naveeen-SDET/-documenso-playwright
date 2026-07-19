@@ -1,6 +1,6 @@
 #!/usr/bin/env ts-node
 /**
- * test-agent.ts — AI Testing Agent (Days 51–52)
+ * test-agent.ts — AI Testing Agent
  *
  * What it does:
  * ─────────────

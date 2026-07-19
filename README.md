@@ -1,14 +1,16 @@
 # documenso-playwright
 
+[![Schema Check](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/schema-check.yml/badge.svg)](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/schema-check.yml)
 [![Smoke](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/smoke.yml/badge.svg)](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/smoke.yml)
 [![Regression](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/regression.yml/badge.svg)](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/regression.yml)
+[![Performance](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/performance.yml/badge.svg)](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/performance.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat&logo=playwright&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 
 Production-grade Playwright + TypeScript test framework for [Documenso](https://documenso.com) — an open-source electronic signature platform operating under eIDAS and UK e-signature regulations.
 
-**190+ tests across 10 test categories. Two CI pipelines. Zero critical defect escapes.**
+**190+ tests across 10 test categories. Three CI pipelines. Zero critical defect escapes.**
 
 ## Quality metrics
 
@@ -133,10 +135,11 @@ See `docs/gdpr-eidas.md` for the GDPR test coverage extension and eIDAS trust le
 | **Zod** | API response schema validation (contract testing) |
 | **Vitest** | Unit tests for data factory and API client (44 tests, <1s) |
 | **Jest + Pact** | Consumer/provider contract tests against the documents API |
+| **k6** | Load testing — smoke (1 VU), load (10 VUs), stress (50 VUs) |
 | **axe-core** | WCAG 2.1 AA accessibility auditing |
 | **Allure** | Test reporting with trend history and failure categorisation |
 | **Docker Compose** | Full Documenso stack locally (app + Postgres + Inbucket) |
-| **GitHub Actions** | CI — smoke on every PR, nightly parallel regression |
+| **GitHub Actions** | CI — schema check on every push, smoke on every PR, nightly regression + performance |
 | **pnpm** | Package manager |
 
 ---
@@ -151,18 +154,27 @@ Push / PR → checkout → install → clone documenso → docker up
          → done in under 5 minutes
 ```
 
-### Nightly regression — 6 parallel jobs
+### Nightly regression — 7 parallel jobs
 
 ```
-00:00 UTC → ┌─ JOB 1: API + contract tests  (tests/api/)
-            ├─ JOB 2: Security + Chaos      (tests/security/ + tests/network/ + tests/chaos/)
-            ├─ JOB 3: Accessibility         (tests/accessibility/)
-            ├─ JOB 4: Firefox               (cross-browser smoke)
-            ├─ JOB 5: Unit + Pact           (vitest + jest)
-            └─ JOB 6: Allure report         (aggregates all results, publishes trend)
+00:00 UTC → ┌─ JOB 1: API tests (shard 1/2)  (tests/api/)
+            ├─ JOB 2: API tests (shard 2/2)  (tests/api/)
+            ├─ JOB 3: Security + Chaos       (tests/security/ + tests/network/ + tests/chaos/)
+            ├─ JOB 4: Accessibility          (tests/accessibility/)
+            ├─ JOB 5: Firefox                (cross-browser smoke)
+            ├─ JOB 6: Pact Provider          (jest + pact-foundation)
+            └─ JOB 7: Allure report          (aggregates all results, publishes trend)
 
 Total time = slowest single job (~10 min), not the sum.
 Each job spins up its own fresh Ubuntu runner + Docker stack.
+```
+
+### Nightly performance — k6 load tests
+
+```
+00:30 UTC → k6 smoke (1 VU / 30s)
+         → k6 load  (ramp to 10 VUs / 8 min) — runs if smoke passes
+         → k6 stress (50 VUs / 7 min)        — manual trigger only
 ```
 
 ---
@@ -171,10 +183,18 @@ Each job spins up its own fresh Ubuntu runner + Docker stack.
 
 ```
 documenso-playwright/
-├── .github/workflows/
-│   ├── smoke.yml          # Every push/PR — fast Chromium smoke
-│   ├── regression.yml     # Nightly — 6 parallel jobs + Allure report
-│   └── schema-check.yml   # TypeScript type check on every PR
+├── .github/
+│   ├── actions/documenso-setup/  # Composite action — shared Docker + Node setup (used by all jobs)
+│   └── workflows/
+│       ├── schema-check.yml   # Every push — schema + contract + Pact consumer (<60s, no Docker)
+│       ├── smoke.yml          # Every PR — Chromium smoke against Docker Documenso
+│       ├── regression.yml     # Nightly — 7 parallel jobs + Allure trend report
+│       ├── performance.yml    # Nightly — k6 smoke + load; manual stress
+│       └── health-check.yml   # Manual — API availability check with Slack alerting
+├── k6/
+│   ├── smoke.k6.js        # 1 VU / 30s — sanity: is the app responding?
+│   ├── load.k6.js         # Ramp to 10 VUs / 8 min — validates p95 < 500ms
+│   └── stress.k6.js       # Staircase to 50 VUs — finds the capacity ceiling
 ├── api/
 │   └── documents.api.ts   # Typed REST client wrapping Playwright APIRequestContext
 ├── config/

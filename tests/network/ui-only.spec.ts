@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { documentHandlers, trpcHandlers, apiHandlers } from '../../mocks/handlers';
 
 /**
- * Day 42 — UI-Only Test Lane (MSW-style mocking)
+ * UI-Only Test Lane (MSW-style mocking)
  *
  * What is a "UI-only test lane"?
  * ──────────────────────────────

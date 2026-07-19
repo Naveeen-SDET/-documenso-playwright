@@ -25,35 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 8
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install chromium --with-deps
-
-      - name: Clone Documenso app
-        run: git clone https://github.com/documenso/documenso.git documenso-app --depth=1
-
-      - name: Start Documenso
-        run: docker compose -f documenso-app/docker/testing/compose.yml up -d
-
-      - name: Wait for app to be ready
-        run: |
-          echo "Waiting for http://localhost:3000..."
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:3000 > /dev/null && echo "App is up!" && break
-            echo "Attempt $i/30 — retrying in 5s..."
-            sleep 5
-          done
+      - name: Documenso test environment setup
+        uses: ./.github/actions/documenso-setup
 
       - name: Run smoke tests
         # No --reporter flag — playwright.config.ts reporters run in full:

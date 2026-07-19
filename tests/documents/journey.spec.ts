@@ -6,7 +6,7 @@ import { DashboardPage } from '../../pages/DashboardPage';
 import { DocumentPage } from '../../pages/DocumentPage';
 
 /**
- * Journey tests — full end-to-end user flows (Day 57)
+ * Journey tests — full end-to-end user flows
  *
  * These tests cover the critical paths a real user takes through Documenso.
  * They are intentionally slow and expensive — each one exercises the full

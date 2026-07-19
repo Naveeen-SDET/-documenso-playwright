@@ -1,5 +1,5 @@
 /**
- * k6 Smoke Test — Day 65
+ * k6 Smoke Test
  *
  * What is a smoke test in load testing?
  * ──────────────────────────────────────

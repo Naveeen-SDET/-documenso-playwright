@@ -1,5 +1,5 @@
 /**
- * k6 Load Test — Day 65
+ * k6 Load Test
  *
  * What is a load test?
  * ─────────────────────

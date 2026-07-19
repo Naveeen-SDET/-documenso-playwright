@@ -124,9 +124,9 @@ mocks/
   handlers.ts     — Named route handler factories (MSW-style)
 
 tests/network/
-  network.spec.ts         — Basic route mocking patterns (Day 39 baseline)
-  api-failures.spec.ts    — Deep failure simulation: 500/503/429/slow/abort (Day 41)
-  ui-only.spec.ts         — UI-only test lane — never touches real backend (Day 42)
+  network.spec.ts         — Basic route mocking patterns (baseline)
+  api-failures.spec.ts    — Deep failure simulation: 500/503/429/slow/abort
+  ui-only.spec.ts         — UI-only test lane — never touches real backend
 ```
 
 ### Adding a new mock handler

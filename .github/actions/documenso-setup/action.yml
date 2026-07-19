@@ -1,0 +1,64 @@
+name: 'Documenso Test Setup'
+description: >
+  Installs Node, pnpm, and project dependencies, then clones Documenso,
+  starts it via Docker Compose, and waits until the app is ready on port 3000.
+  Used by every test job in regression.yml — defined once here instead of
+  copy-pasted across 6 jobs.
+
+# ── Inputs ────────────────────────────────────────────────────────────────────
+# Inputs let callers customise behaviour without editing this file.
+# `install-playwright` is false for the pact-provider job, which runs Jest
+# and has no need for a Chromium binary.
+
+inputs:
+  install-playwright:
+    description: 'Install Playwright Chromium browser. Set to false for Jest-only jobs.'
+    required: false
+    default: 'true'
+
+# ── Steps ─────────────────────────────────────────────────────────────────────
+# IMPORTANT: every `run` step in a composite action must declare `shell: bash`.
+# Regular workflow steps inherit the shell from the runner — composite actions
+# do not. Omitting `shell` causes a validation error at runtime.
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 8
+
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+
+    - name: Install dependencies
+      run: pnpm install
+      shell: bash
+
+    - name: Install Playwright browsers
+      if: inputs.install-playwright == 'true'
+      run: pnpm exec playwright install chromium --with-deps
+      shell: bash
+
+    - name: Clone Documenso app
+      run: git clone https://github.com/documenso/documenso.git documenso-app --depth=1
+      shell: bash
+
+    - name: Start Documenso
+      run: docker compose -f documenso-app/docker/testing/compose.yml up -d
+      shell: bash
+
+    - name: Wait for app to be ready
+      run: |
+        echo "Waiting for http://localhost:3000..."
+        for i in $(seq 1 30); do
+          curl -sf http://localhost:3000 > /dev/null && echo "App is up!" && break
+          echo "Attempt $i/30 — retrying in 5s..."
+          sleep 5
+        done
+      shell: bash

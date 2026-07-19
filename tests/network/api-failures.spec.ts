@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { env } from '../../config/env';
 
 /**
- * Day 41 — API Failure Simulation (Deep Network Interception)
+ * API Failure Simulation (Deep Network Interception)
  *
  * Why this file exists separately from network.spec.ts:
  * ────────────────────────────────────────────────────────

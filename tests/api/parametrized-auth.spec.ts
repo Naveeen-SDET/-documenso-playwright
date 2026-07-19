@@ -1,5 +1,5 @@
 /**
- * Parametrized Authentication Tests — Day 62
+ * Parametrized Authentication Tests
  *
  * What is data-driven (parametrized) testing?
  * ────────────────────────────────────────────

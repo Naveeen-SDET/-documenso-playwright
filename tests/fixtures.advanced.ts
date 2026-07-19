@@ -1,5 +1,5 @@
 /**
- * Advanced Playwright Fixtures — Day 61
+ * Advanced Playwright Fixtures
  *
  * This file demonstrates the 3 fixture patterns you will encounter at any
  * company that uses Playwright seriously. The basics (per-test setup/teardown)

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { env } from '../../config/env';
 
 /**
- * Day 44 — OWASP API Security Tests
+ * OWASP API Security Tests
  *
  * What this file tests (and how it differs from input-validation.spec.ts):
  * ─────────────────────────────────────────────────────────────────────────

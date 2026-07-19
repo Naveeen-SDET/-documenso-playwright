@@ -1,5 +1,5 @@
 /**
- * k6 Stress Test — Day 65
+ * k6 Stress Test
  *
  * What is a stress test?
  * ──────────────────────

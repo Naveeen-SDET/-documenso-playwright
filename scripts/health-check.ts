@@ -1,6 +1,6 @@
 #!/usr/bin/env ts-node
 /**
- * health-check.ts — TestOps API Health Check (Day 54)
+ * health-check.ts — TestOps API Health Check
  *
  * Runs every 6 hours via GitHub Actions cron (.github/workflows/health-check.yml).
  * Checks that the Documenso instance is alive and responding correctly.
