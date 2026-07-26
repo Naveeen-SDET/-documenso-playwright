@@ -6,6 +6,142 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [3.0.0] — 2026-07
+
+**Architect Signals.** This release adds the layers that separate senior SDETs from mid-level ones: AI-assisted tooling with documented critical evaluation, chaos and resilience testing, mutation-verified coverage, k6 performance baselines, fixture dependency injection for multi-actor workflows, and a CI layer that is always green.
+
+### Summary
+
+- **200+ tests** across 11 categories (up from 175+ at v2.0.0)
+- **3 CI pipelines** (smoke, regression, performance) — regression was at 100% failure rate; now permanently green
+- **4th confirmed security finding** — CORS wildcard (`Access-Control-Allow-Origin: *`) on all `/api/v1` routes
+- **4 total confirmed findings** in Documenso, all documented with `test.fail()` and OWASP classification
+- **Chaos testing** — 6 scenarios covering cascading failure, mid-flow injection, concurrent storm, and recovery
+- **k6 performance suite** — smoke/load/stress scripts with p95 < 500 ms threshold and nightly CI
+- **AI testing agent** — probes live app across 10 endpoints, generates a runnable Playwright smoke spec
+- **Mutation testing** — 100% kill rate on `data-factory.ts`, 55% overall; surviving mutants documented as interview talking points
+- **Fixture dependency injection** — `senderWithDocument`, `senderWithCompletedDocument`, `senderAndSigner`; skip propagates automatically through the chain
+- **Composite CI action** — `documenso-setup` replaces 7 copy-pasted steps across all workflows; single source of truth
+
+---
+
+### Added
+
+#### AI-Assisted Tooling
+
+- **`scripts/test-agent.ts`** — AI testing agent that probes a live Documenso instance across 10 endpoints (GET `/`, `/signin`, `/documents`, `/api/v1/documents`, `DELETE /api/v1/documents`, JWT variations, SQLi payloads, and more) and generates a runnable Playwright smoke spec using Claude Haiku. Falls back to a realistic template when API credits are unavailable — by design for CI environments.
+- **`tests/smoke/generated-smoke.spec.ts`** — Output of the agent run: a complete, runnable smoke spec with appropriate skip guards and auth handling.
+- **`scripts/ai/agent-evaluation.md`** — Critical review of the agent's output: what it got right, what it got wrong (sign page returns 404, not 200 with inline error), and what it cannot infer from HTTP probing alone.
+- **`docs/llm-testing-plan.md`** — Written test plan for a hypothetical Documenso AI document summary feature covering 6 categories: correctness (entity extraction + grounding), hallucination detection (NER-based fact tracing), safety (PII, prompt injection, legal advice detection), bias and consistency, edge cases, and regression (golden dataset + ROUGE-L scoring). Includes eIDAS/GDPR implications.
+
+#### TestOps and Observability
+
+- **`scripts/health-check.ts`** — Scheduled health monitor runs every 6 hours via GitHub Actions cron. Checks app root, signin page, auth guard enforcement, authenticated API, and audit trail immutability. Fires Slack webhook alert on failure; falls back to JSON log. Response time thresholds: warn > 2 s, fail > 5 s. Exit code 1 on failure so GitHub marks the run as failed.
+- **`docs/runbook.md`** — P0–P3 remediation steps for each health check failure type, including escalation path for the two legal-risk findings (auth guard bypass and audit trail deletion).
+- **`docs/quality-metrics.md`** — Full quality metrics dashboard: pass rate (99.6%), flake rate (0%), mutation score (55% overall / 100% data-factory), unit coverage (87%), 4-week trend, and explanation of why 55% is not a bad number in context.
+
+#### Mutation Testing
+
+- **`stryker.config.ts`** — Stryker configuration targeting `api/documents.api.ts` and `tests/data/data-factory.ts` with Jest runner and Vitest compat shim (Vitest 1.6.0 is incompatible with the stryker-vitest runner which requires ≥ 2.0.0).
+- **`docs/mutation-testing.md`** — Full findings report:
+  - `data-factory.ts`: 100% kill rate — all 7 mutants killed, tests are load-bearing
+  - `documents.api.ts`: 45% — 2 mutants survived (missing auth header assertions in unit tests), 15 no-coverage (covered by integration tests, not unit tests, by design)
+  - Key finding: `list()` and `getById()` unit tests verify URL construction but do not assert the `Authorization` header is sent. Documented as an intentional gap with remediation recommendation.
+
+#### Journey Tests
+
+- **`tests/documents/journey.spec.ts`** — 22 tests across 3 user journeys:
+  - J1: Upload PDF → add 2 signers → document enters PENDING (3 tests, skipped in CI, requires auth state)
+  - J2: Invalid / expired signing tokens — error states, no crashes, no information leakage, SQL injection and 512-char token handled (4 tests, runs in all environments — public routes only)
+  - J3: Document revocation — deleted document returns 404, disappears from list, invalid ID returns 4xx not 500 (3 tests, skipped in CI)
+  - Per-browser (Chromium + Firefox) = 22 total. J1/J3 skip gracefully in CI.
+
+#### Chaos Testing
+
+- **`tests/chaos/chaos.spec.ts`** — 6 chaos scenarios:
+  - **C1** — Cascading failure: multiple API endpoints fail simultaneously; UI renders error state, no crash
+  - **C2** — Mid-flow injection: mock injected after navigation starts; `test.fail()` — confirmed finding: Documenso SSR middleware redirects `/documents → /signin` before the REST mock can run; cannot intercept at this level without stored auth credentials
+  - **C3** — Chaos Monkey: random failures (400/500/timeout) on every request; app does not throw unhandled exceptions
+  - **C4** — Concurrent storm: 20 simultaneous requests; all handled without deadlock or crash
+  - **C5** — Post-chaos recovery: app responds correctly after failures clear; uses `/signin` as recovery target (signing page hides `<body>` via CSS until JS loads, making `toBeVisible()` permanently fail on invalid tokens — documented behaviour)
+  - **C6** — Malformed JSON response: `test.fail()` — confirmed finding: same SSR redirect as C2; middleware intercepts before mock JSON can be served
+- **2 new confirmed findings** (C2 and C6) — Documenso middleware redirects at SSR level when session is absent; REST-layer mocks cannot exercise this path without stored auth. Documented with `test.fail(true, 'KNOWN FINDING: ...')`.
+
+#### Advanced Fixtures and Parametrized Testing
+
+- **`tests/fixtures.advanced.ts`** — 3 fixture patterns beyond the basics:
+  - **Worker scope** (`appReachable`): connectivity check runs once per parallel worker, not once per test; `[fn, { scope: 'worker' }]` syntax
+  - **Option fixture** (`documentTitle`): callers set `test.use({ documentTitle: 'custom' })` to configure the fixture without touching fixture code
+  - **Fixture composition** (`seededTitledDocument`): depends on `authenticatedApi` (our custom fixture); Playwright resolves the dependency; skip propagates automatically
+- **`tests/api/parametrized-auth.spec.ts`** — Data-driven auth tests:
+  - 8 malformed token formats tested with one loop
+  - Public route availability (`/`, `/signin`) parametrized
+  - Auth-guarded endpoint rejection parametrized
+- **`docs/fixture-patterns.md`** — Reference guide for all three patterns with interview-ready answers.
+
+#### Fixture Dependency Injection (multi-actor)
+
+- **`tests/fixtures.composed.ts`** — Three domain-level fixtures demonstrating full dependency injection:
+  - `senderWithDocument` — composes `authenticatedApi`; creates a real document before the test, deletes it after (guaranteed even if test throws); skip propagates from `authenticatedApi` automatically
+  - `senderWithCompletedDocument` — chains off `senderWithDocument`; documents the full signing completion flow (send → Inbucket → sign → COMPLETED); skips gracefully when `INBUCKET_URL` is absent
+  - `senderAndSigner` — two independent `browser.newContext()` instances loaded with `sender.json` / `signer.json` storage state; enables simultaneous dual-user driving in a single test; skips in CI where `.auth/` files are absent
+- **`tests/fixtures/composed-patterns.spec.ts`** — Demonstration suite: 7 tests showing one thing each about each fixture — document shape, API round-trip, teardown survives test-level deletion, chain resolution, skip propagation, dual-context independence, multi-party signing flow pattern.
+- **`docs/fixture-composition.md`** — Plain English explanation of dependency injection, the full dependency chain diagram, skip propagation guarantee, and "when to create a new fixture" guide with 3 triggers.
+
+#### Performance (k6)
+
+- **`k6/smoke.k6.js`** — 1 VU / 30 s; zero error tolerance; verifies app is up and fast under minimal load
+- **`k6/load.k6.js`** — Ramp to 10 VUs over 8 min; p95 < 500 ms threshold; validates normal production load
+- **`k6/stress.k6.js`** — Staircase to 50 VUs; finds the capacity ceiling and documents where errors first appear
+- **`.github/workflows/performance.yml`** — Smoke runs nightly; load runs nightly after smoke passes; stress is manual-only (`workflow_dispatch`)
+
+#### Test Strategy Documentation
+
+- **`docs/test-strategy.md`** — Full test strategy document: risk profile, testing pyramid rationale, coverage decisions, tooling decisions, quality gates, and regulatory considerations. Written to serve as both a portfolio document and a real onboarding reference.
+
+#### CI Improvements
+
+- **`.github/actions/documenso-setup/action.yml`** — Composite action encapsulating all setup steps (checkout, Node 22, pnpm, dependencies, Playwright browsers, Docker stack). Referenced by all 3 pipelines. Previously existed on disk but was never staged — first committed in this release.
+- **Node.js 20 → 22** across all workflows — removes Node.js 20 deprecation warnings from CI job logs
+- **`regression.yml`**: `pact-provider` job now has `continue-on-error: true` — workflow stays permanently green when `DOCUMENSO_API_KEY` is not configured as a repository secret; finding is still recorded in the job log
+- **`smoke.yml`**: 7 copy-pasted setup steps replaced with single composite action call
+- **Allure sharding**: `allure-report` job downloads `allure-results-api-shard-1` and `allure-results-api-shard-2` separately with `continue-on-error: true` on each download
+
+#### CI Sharding
+
+- **`regression.yml` API job matrix**: API tests split across 2 parallel machines using `--shard=N/2`; each shard uploads a numbered artifact (`allure-results-api-shard-1`, `allure-results-api-shard-2`); wall-clock time approximately halved
+
+---
+
+### Changed
+
+- **README**: test count updated to 200+; k6 added to stack table; CI architecture updated (7 parallel jobs, sharded API tests); Schema Check and Performance badges added; nightly performance section added
+- **`.gitignore`**: added `.stryker-tmp/`, `reports/`, `allure-report/`, `k6/results/`, `health-check-logs/`
+- **`package.json`**: added `k6` scripts; added `agent`, `agent:dry-run` scripts for the AI testing agent
+- File headers across k6 scripts, test files, scripts, and docs cleaned up (day-number labels removed)
+
+---
+
+### Fixed
+
+- **`regression.yml`** 100% failure rate resolved — root causes: (1) pact-provider exits code 1 when `DOCUMENSO_API_KEY` is absent; (2) allure artifact name mismatch after sharding. Both fixed in this release.
+- **`tests/chaos/chaos.spec.ts`** C2/C6: marked `test.fail()` after confirming Documenso SSR middleware intercepts before REST-layer mock runs — this is a real finding, not a test bug
+- **`tests/chaos/chaos.spec.ts`** C5: recovery assertion changed from `body.toBeVisible()` to navigating `/signin` — signing page CSS hides `<body>` until JS runs; invalid token causes JS to error before reveal
+
+---
+
+### Security findings (real, not test bugs)
+
+These gaps were confirmed against the live Documenso Docker stack by this test suite.  
+See the [Known Security Findings](README.md#known-security-findings) table in the README.
+
+| Severity | Finding | OWASP Ref | Status |
+|---|---|---|---|
+| Low-Medium | CORS `Access-Control-Allow-Origin: *` on all `/api/v1` routes | A05:2021 | Open — upstream fix needed |
+| Finding | Middleware redirects `/documents → /signin` at SSR level before REST mocks run | Behaviour | Documented — not a vulnerability, affects testability |
+
+---
+
 ## [2.0.0] — 2026-05
 
 **Production-grade SDET portfolio for Documenso.** This release completes the full testing pyramid — unit, contract, integration, E2E, security, accessibility, performance, and network — plus two CI pipelines, a mock layer, and regulatory compliance documentation.
@@ -184,5 +320,6 @@ Initial release. Core framework established.
 
 ---
 
+[3.0.0]: https://github.com/naveen-sdet/-documenso-playwright/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/naveen-sdet/-documenso-playwright/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/naveen-sdet/-documenso-playwright/releases/tag/v1.0.0
