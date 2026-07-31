@@ -1,4 +1,4 @@
-# documenso-playwright
+# Playwright Test Framework — Documenso
 
 [![Schema Check](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/schema-check.yml/badge.svg)](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/schema-check.yml)
 [![Smoke](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/smoke.yml/badge.svg)](https://github.com/naveen-sdet/-documenso-playwright/actions/workflows/smoke.yml)
@@ -10,7 +10,7 @@
 
 Production-grade Playwright + TypeScript test framework for [Documenso](https://documenso.com) — an open-source electronic signature platform operating under eIDAS and UK e-signature regulations.
 
-**190+ tests across 10 test categories. Three CI pipelines. Zero critical defect escapes.**
+**200+ tests across 11 test categories. Three CI pipelines. Four confirmed security findings. Zero critical defect escapes.**
 
 ## Quality metrics
 
@@ -22,6 +22,25 @@ Production-grade Playwright + TypeScript test framework for [Documenso](https://
 | Unit test coverage | 87% | ≥ 80% |
 
 See [docs/quality-metrics.md](docs/quality-metrics.md) for full dashboard, trend history, and metric definitions.
+
+---
+
+## Find it fast
+
+| Competency | Key file(s) |
+|---|---|
+| Fixture dependency injection | [`tests/fixtures.composed.ts`](tests/fixtures.composed.ts) · [`docs/fixture-composition.md`](docs/fixture-composition.md) |
+| Advanced fixture patterns | [`tests/fixtures.advanced.ts`](tests/fixtures.advanced.ts) · [`docs/fixture-patterns.md`](docs/fixture-patterns.md) |
+| Security testing (OWASP) | [`tests/security/`](tests/security/) · [`docs/owasp-coverage.md`](docs/owasp-coverage.md) |
+| Chaos / resilience testing | [`tests/chaos/chaos.spec.ts`](tests/chaos/chaos.spec.ts) |
+| k6 performance testing | [`k6/`](k6/) · [`.github/workflows/performance.yml`](.github/workflows/performance.yml) |
+| AI testing agent + evaluation | [`scripts/test-agent.ts`](scripts/test-agent.ts) · [`scripts/ai/agent-evaluation.md`](scripts/ai/agent-evaluation.md) |
+| Contract testing (Zod + Pact) | [`tests/api/contracts.spec.ts`](tests/api/contracts.spec.ts) · [`pact/`](pact/) |
+| Network interception / mocking | [`tests/network/`](tests/network/) · [`mocks/`](mocks/) |
+| Mutation testing | [`stryker.config.ts`](stryker.config.ts) · [`docs/mutation-testing.md`](docs/mutation-testing.md) |
+| CI pipeline design | [`.github/workflows/`](.github/workflows/) · [`.github/actions/`](.github/actions/) |
+| Regulatory compliance (GDPR / eIDAS) | [`docs/gdpr-eidas.md`](docs/gdpr-eidas.md) |
+| LLM output testing strategy | [`docs/llm-testing-plan.md`](docs/llm-testing-plan.md) |
 
 ---
 
@@ -83,6 +102,7 @@ These findings were identified through automated security header scanning (OWASP
 | **Network** | Route mocking (500/401/503/429), signing flow failures, slow response simulation, partial outage, offline abort, transient failure/retry | `@network` |
 | **Chaos** | Cascading failure (REST + tRPC simultaneously), mid-flow injection, Chaos Monkey (50% failure rate), concurrent request storm, recovery after chaos clears, corrupted JSON response | `@chaos` |
 | **Cross-browser** | Chromium + Firefox smoke suite, JS error detection | `@cross-browser` |
+| **Fixture DI** | Dependency injection chains — `senderWithDocument`, `senderWithCompletedDocument`, `senderAndSigner`; skip propagation; dual-actor multi-context pattern | — |
 
 ---
 
@@ -116,13 +136,19 @@ This framework spans all four layers of the pyramid, with a deliberate opinion a
 
 ## Architecture decisions
 
-See `docs/test-strategy.md` for the complete test strategy — risk profile, pyramid rationale, coverage decisions, what is explicitly not tested and why, tooling decisions, quality gates, and regulatory considerations.
+See [`docs/test-strategy.md`](docs/test-strategy.md) for the complete test strategy — risk profile, pyramid rationale, coverage decisions, what is explicitly not tested and why, tooling decisions, quality gates, and regulatory considerations.
 
-See `docs/mock-vs-real.md` for the full decision framework on when to mock vs hit the real API — including the decision matrix, the tautology trap, and the three things mocking can't fix.
+See [`docs/mock-vs-real.md`](docs/mock-vs-real.md) for the full decision framework on when to mock vs hit the real API — decision matrix, the tautology trap, and the three things mocking can't fix.
 
-See `docs/owasp-coverage.md` for the OWASP Top 10 coverage map — which categories are covered by automated tests, which the app boundary prevents testing, and which need dev-level access.
+See [`docs/owasp-coverage.md`](docs/owasp-coverage.md) for the OWASP Top 10 coverage map — which categories are covered by automated tests, which the app boundary prevents testing, and which need dev-level access.
 
-See `docs/gdpr-eidas.md` for the GDPR test coverage extension and eIDAS trust level analysis — SES vs AES vs QES, what testing looks like at each level, and the GDPR/eIDAS tension around audit trail erasure.
+See [`docs/gdpr-eidas.md`](docs/gdpr-eidas.md) for the GDPR test coverage extension and eIDAS trust level analysis — SES vs AES vs QES, what testing looks like at each level, and the GDPR/eIDAS tension around audit trail erasure.
+
+See [`docs/fixture-composition.md`](docs/fixture-composition.md) for the dependency injection pattern — how Playwright fixtures compose, skip propagation guarantees, and the dual-actor multi-context pattern.
+
+See [`docs/mutation-testing.md`](docs/mutation-testing.md) for the Stryker findings report — 100% kill rate on the data factory, surviving mutants in the API client, and what the gap means in practice.
+
+See [`docs/llm-testing-plan.md`](docs/llm-testing-plan.md) for the LLM output testing plan — hallucination detection, safety checks, bias testing, golden dataset regression, and eIDAS/GDPR implications for AI-generated document summaries.
 
 ---
 
@@ -200,9 +226,16 @@ documenso-playwright/
 ├── config/
 │   └── env.ts             # Zod-validated env loader — fails fast on missing vars
 ├── docs/
-│   ├── gdpr-eidas.md      # GDPR/eIDAS compliance analysis + test coverage
-│   ├── mock-vs-real.md    # Decision framework: when to mock vs use real API
-│   └── owasp-coverage.md  # OWASP Top 10 coverage map
+│   ├── fixture-composition.md # DI patterns, dependency chain, skip propagation
+│   ├── fixture-patterns.md    # Worker scope, option fixtures, composition reference
+│   ├── gdpr-eidas.md          # GDPR/eIDAS compliance analysis + test coverage
+│   ├── llm-testing-plan.md    # AI document summary test plan (hallucination, safety, bias)
+│   ├── mock-vs-real.md        # Decision framework: when to mock vs use real API
+│   ├── mutation-testing.md    # Stryker findings, surviving mutants, remediation
+│   ├── owasp-coverage.md      # OWASP Top 10 coverage map
+│   ├── quality-metrics.md     # Pass rate, flake rate, mutation score, 4-week trend
+│   ├── runbook.md             # P0-P3 remediation for each health check failure type
+│   └── test-strategy.md       # Risk profile, pyramid rationale, quality gates
 ├── mocks/
 │   ├── fixtures.ts        # 15 typed mock response datasets
 │   └── handlers.ts        # Named route handler factories (MSW-style)
@@ -232,7 +265,9 @@ documenso-playwright/
 ├── unit/                  # Vitest unit tests — data factory + API client (44 tests)
 ├── utils/
 │   └── data-factory.ts    # nanoid-prefixed test data — parallel-safe
-└── tests/fixtures.ts      # Custom fixtures: senderPage, signerPage, apiContext, documentFixture
+├── tests/fixtures.ts          # Base fixtures: senderPage, signerPage, authenticatedApi, seededDocument
+├── tests/fixtures.advanced.ts # Worker scope, option fixtures, fixture composition (3 patterns)
+└── tests/fixtures.composed.ts # Domain DI fixtures: senderWithDocument, senderWithCompletedDocument, senderAndSigner
 ```
 
 ---
@@ -255,30 +290,41 @@ documenso-playwright/
 
 ## Quickstart
 
+**No Docker needed — run this first:**
+
+```bash
+pnpm install
+pnpm test:unit                        # 44 Vitest unit tests, < 1 second
+pnpm exec playwright test --project=ci --grep @contract  # Schema contract tests, no auth required
+```
+
+**Full stack (requires Docker):**
+
 ```bash
 # 1. Start Documenso
 cd documenso-app
 docker compose -f docker/testing/compose.yml up -d
 
-# 2. Install
+# 2. Install + browsers
 cd ..
 pnpm install
 pnpm exec playwright install chromium
 
 # 3. Environment
 cp .env.example .env
-# Edit .env — set BASE_URL, SENDER_EMAIL, SENDER_PASSWORD, SIGNER_EMAIL, SIGNER_PASSWORD
+# Set BASE_URL, SENDER_EMAIL, SENDER_PASSWORD, SIGNER_EMAIL, SIGNER_PASSWORD, DOCUMENSO_API_KEY
 
-# 4. Run everything
+# 4. Run the full suite
 pnpm exec playwright test
 
-# 5. CI-safe subset (no pre-seeded accounts needed)
-pnpm exec playwright test --project=ci
-
-# 6. Run by category
+# 5. Run by category
 pnpm exec playwright test --grep @security
 pnpm exec playwright test --grep @api
+pnpm exec playwright test --grep @chaos
 pnpm exec playwright test --grep @a11y
+
+# 6. CI-safe subset (no pre-seeded accounts, no API key required)
+pnpm exec playwright test --project=ci
 ```
 
 ---
